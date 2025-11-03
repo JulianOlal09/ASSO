@@ -1,0 +1,85 @@
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import authService from '../services/authService';
+
+const AuthContext = createContext({});
+
+export const AuthProvider = ({ children }) => {
+  const [usuario, setUsuario] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    verificarAutenticacion();
+  }, []);
+
+  const verificarAutenticacion = async () => {
+    try {
+      const usuarioGuardado = await authService.getUsuarioActual();
+      if (usuarioGuardado) {
+        setUsuario(usuarioGuardado);
+      }
+    } catch (error) {
+      console.error('Error al verificar autenticación:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (email, password) => {
+    try {
+      const { usuario: usuarioData } = await authService.login(email, password);
+      setUsuario(usuarioData);
+      return usuarioData;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const registro = async (nombre, email, password, rol) => {
+    try {
+      const result = await authService.registro(nombre, email, password, rol);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    await authService.logout();
+    setUsuario(null);
+  };
+
+  const isAuthenticated = () => {
+    return !!usuario;
+  };
+
+  const hasRole = (roles) => {
+    if (!usuario) return false;
+    return roles.includes(usuario.rol);
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        usuario,
+        loading,
+        login,
+        registro,
+        logout,
+        isAuthenticated,
+        hasRole,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe usarse dentro de AuthProvider');
+  }
+  return context;
+};
+
+export default AuthContext;
