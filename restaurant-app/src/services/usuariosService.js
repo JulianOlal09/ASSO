@@ -10,6 +10,15 @@ class UsuariosService {
     }
   }
 
+  async obtenerMeseros() {
+    try {
+      const response = await api.get('/usuarios/meseros/lista');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  }
+
   async obtenerUsuarioPorId(id) {
     try {
       const response = await api.get(`/usuarios/${id}`);

@@ -72,6 +72,15 @@ class MesasService {
       throw error.response?.data || error;
     }
   }
+
+  async liberarMesa(id) {
+    try {
+      const response = await api.put(`/mesas/${id}/liberar`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  }
 }
 
 export default new MesasService();

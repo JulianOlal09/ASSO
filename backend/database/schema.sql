@@ -47,10 +47,12 @@ CREATE TABLE mesas (
     id INT PRIMARY KEY AUTO_INCREMENT,
     numero VARCHAR(20) NOT NULL UNIQUE,
     capacidad INT NOT NULL,
+    mesero_id INT,
     qr_code VARCHAR(255) UNIQUE,
     estado ENUM('disponible', 'ocupada', 'reservada', 'mantenimiento') DEFAULT 'disponible',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (mesero_id) REFERENCES usuarios(id) ON DELETE SET NULL
 );
 
 -- Tabla de Pedidos

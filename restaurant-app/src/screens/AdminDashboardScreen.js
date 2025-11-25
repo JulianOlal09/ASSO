@@ -7,9 +7,12 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import reportesService from '../services/reportesService';
+import { io } from 'socket.io-client';
+import { API_URL } from '../config/api';
 
 export default function AdminDashboardScreen({ navigation }) {
   const [estadisticas, setEstadisticas] = useState(null);
@@ -18,6 +21,37 @@ export default function AdminDashboardScreen({ navigation }) {
 
   useEffect(() => {
     cargarEstadisticas();
+
+    // Conectar WebSocket para admin
+    const socket = io(API_URL.replace('/api', ''));
+    socket.emit('join-admin');
+    console.log('🔌 Admin conectado a sala de administración');
+
+    // Escuchar nuevo pedido
+    socket.on('nuevo-pedido', (pedido) => {
+      console.log('✅ Nuevo pedido recibido en admin:', pedido);
+      Alert.alert(
+        '🔔 Nuevo Pedido',
+        `Mesa ${pedido.mesa_numero} - Total: $${pedido.total}`,
+        [{ text: 'Ver', onPress: () => cargarEstadisticas() }, { text: 'Cerrar' }]
+      );
+      cargarEstadisticas();
+    });
+
+    // Escuchar actualizaciones
+    socket.on('pedido-actualizado', (data) => {
+      console.log('🔄 Pedido actualizado en admin:', data);
+      cargarEstadisticas();
+    });
+
+    socket.on('item-actualizado', (data) => {
+      console.log('🔄 Item actualizado en admin:', data);
+      cargarEstadisticas();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const cargarEstadisticas = async () => {
@@ -77,13 +111,15 @@ export default function AdminDashboardScreen({ navigation }) {
       </View>
 
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={cargarEstadisticas} />
         }
+        showsVerticalScrollIndicator={true}
       >
         {/* Estadísticas Rápidas */}
-        <Text style={styles.sectionTitle}>📊 Estadísticas de Hoy</Text>
+        <Text style={styles.sectionTitle}>Estadísticas de Hoy</Text>
         <View style={styles.statsGrid}>
           <StatCard
             title="Ventas Totales"
@@ -110,7 +146,7 @@ export default function AdminDashboardScreen({ navigation }) {
         </View>
 
         {/* Menú de Opciones */}
-        <Text style={styles.sectionTitle}>🛠️ Gestión</Text>
+        <Text style={styles.sectionTitle}>Gestión</Text>
 
         <MenuItem
           title="Gestión de Usuarios"
@@ -140,7 +176,7 @@ export default function AdminDashboardScreen({ navigation }) {
           onPress={() => navigation.navigate('PedidosAdmin')}
         />
 
-        <Text style={styles.sectionTitle}>📈 Reportes</Text>
+        <Text style={styles.sectionTitle}>Reportes</Text>
 
         <MenuItem
           title="Reporte de Ventas"
@@ -164,23 +200,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    ...(Platform.OS === 'web' && {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
+    }),
   },
   header: {
     backgroundColor: '#2196F3',
     paddingTop: 40,
-    paddingBottom: 20,
+    paddingBottom: 25,
     paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: 110,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    ...(Platform.OS === 'web' && {
+      flexShrink: 0,
+    }),
+  },
+  scrollView: {
+    flex: 1,
+    ...(Platform.OS === 'web' && {
+      flexGrow: 1,
+      flexShrink: 1,
+      overflow: 'auto',
+    }),
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
     color: 'white',
+    letterSpacing: 1,
+    textAlign: 'center',
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: 'rgba(255,255,255,0.9)',
     marginTop: 5,
   },
@@ -196,24 +256,30 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 15,
+    paddingBottom: 100,
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 20,
-    marginBottom: 15,
+    marginTop: 25,
+    marginBottom: 20,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: 15,
   },
   statCard: {
     backgroundColor: 'white',
     borderRadius: 10,
-    padding: 15,
-    width: '48%',
+    padding: 20,
+    minWidth: 200,
+    flex: 1,
     marginBottom: 15,
     borderTopWidth: 4,
     elevation: 2,
@@ -223,17 +289,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   statTitle: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666',
     marginBottom: 8,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   statSubtitle: {
-    fontSize: 11,
+    fontSize: 13,
     color: '#999',
   },
   menuItem: {
@@ -249,19 +315,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    minHeight: 70,
   },
   menuIcon: {
-    fontSize: 28,
-    marginRight: 15,
+    fontSize: 32,
+    marginRight: 20,
   },
   menuTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#333',
     flex: 1,
   },
   menuArrow: {
-    fontSize: 20,
+    fontSize: 24,
     color: '#999',
   },
 });

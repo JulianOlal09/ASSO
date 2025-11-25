@@ -8,6 +8,7 @@ import {
   Alert,
   RefreshControl,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import pedidosService from '../services/pedidosService';
@@ -26,11 +27,26 @@ export default function KitchenScreen({ navigation }) {
     // Conectar WebSocket
     const socket = io(API_URL.replace('/api', ''));
     socket.emit('join-cocina');
+    console.log('🔌 Conectado a sala de cocina');
 
+    // Escuchar nuevo pedido
     socket.on('nuevo-pedido', (pedido) => {
+      console.log('✅ Nuevo pedido recibido:', pedido);
       Alert.alert('🔔 NUEVO PEDIDO', `Mesa ${pedido.mesa_numero || pedido.id}`, [
         { text: 'OK', style: 'default' }
       ]);
+      cargarPedidos();
+    });
+
+    // Escuchar actualización de pedido
+    socket.on('pedido-actualizado', (data) => {
+      console.log('🔄 Pedido actualizado:', data);
+      cargarPedidos();
+    });
+
+    // Escuchar actualización de item
+    socket.on('item-actualizado', (data) => {
+      console.log('🔄 Item actualizado:', data);
       cargarPedidos();
     });
 
@@ -297,6 +313,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ECEFF1',
+    ...(Platform.OS === 'web' && {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
+    }),
   },
   header: {
     backgroundColor: '#263238',
@@ -358,6 +379,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 12,
+    paddingBottom: 100,
   },
   pedidoCard: {
     backgroundColor: '#FFFFFF',

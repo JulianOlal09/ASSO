@@ -51,10 +51,35 @@ const crearPedido = async (req, res) => {
 
     await connection.commit();
 
-    // Emitir evento WebSocket para notificar a la cocina
+    // Emitir evento WebSocket para notificar a todos
     const io = req.app.get('io');
     const [pedidoCompleto] = await obtenerDetallePedido(pedido_id);
-    io.to('cocina').emit('nuevo-pedido', pedidoCompleto);
+
+    if (pedidoCompleto.length > 0) {
+      const pedidoData = pedidoCompleto[0];
+
+      // Notificar a la cocina
+      io.to('cocina').emit('nuevo-pedido', pedidoData);
+
+      // Notificar al admin
+      io.to('admin').emit('nuevo-pedido', pedidoData);
+
+      // Notificar a la mesa específica
+      io.to(`mesa-${mesa_id}`).emit('pedido-confirmado', pedidoData);
+
+      // Si hay mesero asignado, notificarlo
+      if (mesero_id) {
+        io.to(`mesero-${mesero_id}`).emit('nuevo-pedido', pedidoData);
+      }
+
+      // Obtener mesero asignado a la mesa
+      const [mesaData] = await db.query('SELECT mesero_id FROM mesas WHERE id = ?', [mesa_id]);
+      if (mesaData.length > 0 && mesaData[0].mesero_id) {
+        io.to(`mesero-${mesaData[0].mesero_id}`).emit('nuevo-pedido', pedidoData);
+      }
+
+      console.log(`✅ Pedido ${pedido_id} creado - Notificaciones enviadas`);
+    }
 
     res.status(201).json({
       message: 'Pedido creado exitosamente',
@@ -72,41 +97,65 @@ const crearPedido = async (req, res) => {
 
 // Función auxiliar para obtener detalle completo del pedido
 const obtenerDetallePedido = async (pedido_id) => {
-  return await db.query(
+  // Obtener datos del pedido
+  const [pedidos] = await db.query(
     `SELECT
       p.*,
       m.numero as mesa_numero,
-      u.nombre as mesero_nombre,
-      JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'id', dp.id,
-          'platillo_id', dp.platillo_id,
-          'platillo_nombre', pl.nombre,
-          'cantidad', dp.cantidad,
-          'precio_unitario', dp.precio_unitario,
-          'subtotal', dp.subtotal,
-          'notas_especiales', dp.notas_especiales,
-          'estado', dp.estado
-        )
-      ) as items
+      u.nombre as mesero_nombre
     FROM pedidos p
     LEFT JOIN mesas m ON p.mesa_id = m.id
     LEFT JOIN usuarios u ON p.mesero_id = u.id
-    LEFT JOIN detalle_pedidos dp ON p.id = dp.pedido_id
-    LEFT JOIN platillos pl ON dp.platillo_id = pl.id
-    WHERE p.id = ?
-    GROUP BY p.id`,
+    WHERE p.id = ?`,
     [pedido_id]
   );
+
+  if (pedidos.length === 0) {
+    return [[]];
+  }
+
+  // Obtener items del pedido
+  const [items] = await db.query(
+    `SELECT
+      dp.id,
+      dp.platillo_id,
+      pl.nombre as platillo_nombre,
+      dp.cantidad,
+      dp.precio_unitario,
+      dp.subtotal,
+      dp.notas_especiales,
+      dp.estado
+    FROM detalle_pedidos dp
+    LEFT JOIN platillos pl ON dp.platillo_id = pl.id
+    WHERE dp.pedido_id = ?`,
+    [pedido_id]
+  );
+
+  // Combinar pedido con items
+  const pedidoCompleto = {
+    ...pedidos[0],
+    items: items
+  };
+
+  return [[pedidoCompleto]];
 };
 
 // Obtener todos los pedidos
 const obtenerPedidos = async (req, res) => {
   try {
     const { estado, mesa_id } = req.query;
+
+    // Consulta principal de pedidos (sin JSON_ARRAYAGG para compatibilidad)
     let query = `
       SELECT
-        p.*,
+        p.id,
+        p.mesa_id,
+        p.mesero_id,
+        p.total,
+        p.estado,
+        p.notas,
+        p.created_at,
+        p.updated_at,
         m.numero as mesa_numero,
         u.nombre as mesero_nombre
       FROM pedidos p
@@ -129,7 +178,34 @@ const obtenerPedidos = async (req, res) => {
     query += ' ORDER BY p.created_at DESC';
 
     const [pedidos] = await db.query(query, params);
-    res.json(pedidos);
+
+    // Obtener items para cada pedido
+    const pedidosConItems = await Promise.all(
+      pedidos.map(async (pedido) => {
+        const [items] = await db.query(
+          `SELECT
+            dp.id,
+            dp.platillo_id,
+            pl.nombre,
+            dp.cantidad,
+            dp.precio_unitario,
+            dp.subtotal,
+            dp.estado,
+            dp.notas_especiales
+          FROM detalle_pedidos dp
+          LEFT JOIN platillos pl ON dp.platillo_id = pl.id
+          WHERE dp.pedido_id = ?`,
+          [pedido.id]
+        );
+
+        return {
+          ...pedido,
+          items: items || []
+        };
+      })
+    );
+
+    res.json(pedidosConItems);
   } catch (error) {
     console.error('Error al obtener pedidos:', error);
     res.status(500).json({ error: 'Error al obtener pedidos' });
@@ -146,10 +222,7 @@ const obtenerPedidoPorId = async (req, res) => {
       return res.status(404).json({ error: 'Pedido no encontrado' });
     }
 
-    // Parsear el JSON de items
     const pedido = pedidos[0];
-    pedido.items = JSON.parse(pedido.items);
-
     res.json(pedido);
   } catch (error) {
     console.error('Error al obtener pedido:', error);
@@ -165,16 +238,25 @@ const actualizarEstadoPedido = async (req, res) => {
 
     await db.query('UPDATE pedidos SET estado = ? WHERE id = ?', [estado, id]);
 
-    // Emitir evento WebSocket
+    // Emitir evento WebSocket a todos
     const io = req.app.get('io');
     const [pedido] = await obtenerDetallePedido(id);
 
     if (pedido.length > 0) {
-      const mesa_id = pedido[0].mesa_id;
-      io.to(`mesa-${mesa_id}`).emit('pedido-actualizado', {
-        pedido_id: id,
-        estado
-      });
+      const pedidoData = pedido[0];
+      const mesa_id = pedidoData.mesa_id;
+      const mesero_id = pedidoData.mesero_id;
+
+      // Notificar a todos los interesados
+      io.to('cocina').emit('pedido-actualizado', { pedido_id: id, estado, pedido: pedidoData });
+      io.to('admin').emit('pedido-actualizado', { pedido_id: id, estado, pedido: pedidoData });
+      io.to(`mesa-${mesa_id}`).emit('pedido-actualizado', { pedido_id: id, estado, pedido: pedidoData });
+
+      if (mesero_id) {
+        io.to(`mesero-${mesero_id}`).emit('pedido-actualizado', { pedido_id: id, estado, pedido: pedidoData });
+      }
+
+      console.log(`✅ Pedido ${id} actualizado a ${estado} - Notificaciones enviadas`);
     }
 
     res.json({ message: 'Estado del pedido actualizado exitosamente' });
@@ -207,16 +289,32 @@ const actualizarEstadoItem = async (req, res) => {
         await db.query('UPDATE pedidos SET estado = ? WHERE id = ?', ['listo', pedido_id]);
       }
 
-      // Emitir evento WebSocket
+      // Emitir evento WebSocket a todos
       const io = req.app.get('io');
       const [pedido] = await obtenerDetallePedido(pedido_id);
+
       if (pedido.length > 0) {
-        const mesa_id = pedido[0].mesa_id;
-        io.to(`mesa-${mesa_id}`).emit('item-actualizado', {
+        const pedidoData = pedido[0];
+        const mesa_id = pedidoData.mesa_id;
+        const mesero_id = pedidoData.mesero_id;
+
+        const updateData = {
           pedido_id,
           item_id: id,
-          estado
-        });
+          estado,
+          pedido: pedidoData
+        };
+
+        // Notificar a todos
+        io.to('cocina').emit('item-actualizado', updateData);
+        io.to('admin').emit('item-actualizado', updateData);
+        io.to(`mesa-${mesa_id}`).emit('item-actualizado', updateData);
+
+        if (mesero_id) {
+          io.to(`mesero-${mesero_id}`).emit('item-actualizado', updateData);
+        }
+
+        console.log(`✅ Item ${id} del pedido ${pedido_id} actualizado a ${estado}`);
       }
     }
 

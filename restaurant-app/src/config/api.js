@@ -8,7 +8,7 @@ import { Platform } from 'react-native';
 // - Windows: ejecuta "ipconfig" en cmd
 // - Mac: ejecuta "ifconfig | grep inet" en terminal
 // - Linux: ejecuta "hostname -I" en terminal
-const LOCAL_IP = '192.168.100.13'; // ⚠️ Tu IP Local
+const LOCAL_IP = '192.168.100.196'; // ⚠️ Tu IP Local
 
 // Usar localhost en web, IP local en dispositivos móviles
 const API_URL = Platform.OS === 'web'

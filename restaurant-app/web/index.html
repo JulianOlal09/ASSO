@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1.00001,viewport-fit=cover" />
+    <title>Sistema de Gestión de Restaurantes</title>
+    <style>
+      /* Root / layout */
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100vh;     /* <-- permite que el contenido crezca */
+        overflow-y: auto;      /* <-- permite scroll vertical */
+      }
+
+      /* Aseguramos que el root no "forcé" altura fija */
+      #root {
+        width: 100%;
+        min-height: 100vh;     /* <-- permite crecimiento y scroll */
+        display: block;
+      }
+
+      /* Evitar reglas globales invasivas para eventos/touch */
+      /* * { -webkit-overflow-scrolling: touch; }  <- comentar/evitar */
+    </style>
+  </head>
+  <body>
+    <noscript>Necesitas habilitar JavaScript para ejecutar esta app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

@@ -13,14 +13,21 @@ export const AuthProvider = ({ children }) => {
 
   const verificarAutenticacion = async () => {
     try {
+      setLoading(true);
+      console.log('🔍 Verificando autenticación...');
       const usuarioGuardado = await authService.getUsuarioActual();
+      console.log('👤 Usuario guardado:', usuarioGuardado);
       if (usuarioGuardado) {
         setUsuario(usuarioGuardado);
+        console.log('✅ Usuario cargado:', usuarioGuardado.nombre, '-', usuarioGuardado.rol);
+      } else {
+        console.log('❌ No hay usuario guardado');
       }
     } catch (error) {
-      console.error('Error al verificar autenticación:', error);
+      console.error('❌ Error al verificar autenticación:', error);
     } finally {
       setLoading(false);
+      console.log('✅ Verificación de autenticación completada');
     }
   };
 
@@ -28,8 +35,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const { usuario: usuarioData } = await authService.login(email, password);
       setUsuario(usuarioData);
+      console.log('✅ Login exitoso:', usuarioData.nombre);
       return usuarioData;
     } catch (error) {
+      console.error('❌ Error en login:', error);
       throw error;
     }
   };
@@ -44,6 +53,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    console.log('🚪 Cerrando sesión...');
     await authService.logout();
     setUsuario(null);
   };
@@ -67,6 +77,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         isAuthenticated,
         hasRole,
+        verificarAutenticacion,
       }}
     >
       {children}

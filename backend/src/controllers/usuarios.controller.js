@@ -34,6 +34,20 @@ const obtenerUsuarioPorId = async (req, res) => {
   }
 };
 
+// Obtener solo meseros activos
+const obtenerMeseros = async (req, res) => {
+  try {
+    const [meseros] = await db.query(
+      'SELECT id, nombre, email FROM usuarios WHERE rol = ? AND activo = TRUE ORDER BY nombre',
+      ['mesero']
+    );
+    res.json(meseros);
+  } catch (error) {
+    console.error('Error al obtener meseros:', error);
+    res.status(500).json({ error: 'Error al obtener meseros' });
+  }
+};
+
 // Actualizar usuario
 const actualizarUsuario = async (req, res) => {
   try {
@@ -99,6 +113,7 @@ const eliminarUsuario = async (req, res) => {
 module.exports = {
   obtenerUsuarios,
   obtenerUsuarioPorId,
+  obtenerMeseros,
   actualizarUsuario,
   cambiarPassword,
   eliminarUsuario

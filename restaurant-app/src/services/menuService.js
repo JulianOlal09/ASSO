@@ -66,6 +66,15 @@ class MenuService {
       throw error.response?.data || error;
     }
   }
+
+  async crearCategoria(categoria) {
+    try {
+      const response = await api.post('/menu/categorias', categoria);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  }
 }
 
 export default new MenuService();

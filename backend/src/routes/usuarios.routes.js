@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   obtenerUsuarios,
   obtenerUsuarioPorId,
+  obtenerMeseros,
   actualizarUsuario,
   cambiarPassword,
   eliminarUsuario
@@ -13,6 +14,7 @@ const { verificarToken, verificarRol } = require('../middleware/auth.middleware'
 router.use(verificarToken);
 
 router.get('/', verificarRol('administrador'), obtenerUsuarios);
+router.get('/meseros/lista', verificarRol('administrador'), obtenerMeseros);
 router.get('/:id', obtenerUsuarioPorId);
 router.put('/:id', verificarRol('administrador'), actualizarUsuario);
 router.put('/:id/password', cambiarPassword);

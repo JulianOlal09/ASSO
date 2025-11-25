@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import mesasService from '../services/mesasService';
 
@@ -14,7 +15,8 @@ export default function DetalleMesaScreen({ route, navigation }) {
   const { mesaId } = route.params;
   const [mesa, setMesa] = useState(null);
   const [pedidos, setPedidos] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     cargarDatos();
@@ -23,6 +25,7 @@ export default function DetalleMesaScreen({ route, navigation }) {
   const cargarDatos = async () => {
     try {
       setLoading(true);
+      setError(false);
       const [mesaData, pedidosData] = await Promise.all([
         mesasService.obtenerMesaPorId(mesaId),
         mesasService.obtenerPedidosMesa(mesaId),
@@ -31,8 +34,12 @@ export default function DetalleMesaScreen({ route, navigation }) {
       setMesa(mesaData);
       setPedidos(pedidosData);
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar los datos de la mesa');
       console.error('Error al cargar mesa:', error);
+      setError(true);
+      Alert.alert('Error', 'No se pudieron cargar los datos de la mesa', [
+        { text: 'Reintentar', onPress: () => cargarDatos() },
+        { text: 'Volver', onPress: () => navigation.goBack() }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -107,16 +114,35 @@ export default function DetalleMesaScreen({ route, navigation }) {
 
   const calcularTotalPedido = (pedido) => {
     if (!pedido.items) return 0;
-    const items = JSON.parse(pedido.items);
+    // Los items ya vienen parseados desde el backend
+    const items = Array.isArray(pedido.items) ? pedido.items : JSON.parse(pedido.items);
     return items.reduce((sum, item) => sum + parseFloat(item.subtotal || 0), 0);
   };
 
-  if (!mesa) {
+  if (loading && !mesa) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Cargando...</Text>
+        <Text style={styles.loadingText}>Cargando...</Text>
       </View>
     );
+  }
+
+  if (error && !mesa) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>⚠️ Error al cargar la mesa</Text>
+        <TouchableOpacity style={styles.btnRetry} onPress={cargarDatos}>
+          <Text style={styles.btnRetryText}>Reintentar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.btnBack2} onPress={() => navigation.goBack()}>
+          <Text style={styles.btnBackText}>Volver</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!mesa) {
+    return null;
   }
 
   const pedidosActivos = pedidos.filter(
@@ -135,10 +161,12 @@ export default function DetalleMesaScreen({ route, navigation }) {
       </View>
 
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={cargarDatos} />
         }
+        showsVerticalScrollIndicator={true}
       >
         {/* Info de la Mesa */}
         <View style={styles.mesaInfoCard}>
@@ -202,7 +230,8 @@ export default function DetalleMesaScreen({ route, navigation }) {
 
         {pedidosActivos.length > 0 ? (
           pedidosActivos.map((pedido) => {
-            const items = pedido.items ? JSON.parse(pedido.items) : [];
+            // Los items ya vienen parseados desde el backend
+            const items = Array.isArray(pedido.items) ? pedido.items : (pedido.items ? JSON.parse(pedido.items) : []);
             const total = calcularTotalPedido(pedido);
 
             return (
@@ -233,7 +262,7 @@ export default function DetalleMesaScreen({ route, navigation }) {
                       <View key={index} style={styles.itemRow}>
                         <Text style={styles.itemCantidad}>{item.cantidad}x</Text>
                         <Text style={styles.itemNombre}>
-                          {item.platillo_nombre}
+                          {item.nombre || item.platillo_nombre}
                         </Text>
                         <Text style={styles.itemPrecio}>
                           ${parseFloat(item.subtotal || 0).toFixed(2)}
@@ -271,11 +300,50 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    ...(Platform.OS === 'web' && {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
+    }),
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#666',
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#F44336',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  btnRetry: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  btnRetryText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  btnBack2: {
+    backgroundColor: '#666',
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  btnBackText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   header: {
     backgroundColor: '#4CAF50',
@@ -285,6 +353,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    ...(Platform.OS === 'web' && {
+      flexShrink: 0,
+    }),
+  },
+  scrollView: {
+    flex: 1,
+    ...(Platform.OS === 'web' && {
+      flexGrow: 1,
+      flexShrink: 1,
+      overflow: 'auto',
+    }),
   },
   btnBack: {
     color: 'white',
@@ -297,6 +376,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 15,
+    paddingBottom: 100,
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
   },
   sectionTitle: {
     fontSize: 18,

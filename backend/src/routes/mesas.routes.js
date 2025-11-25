@@ -8,7 +8,8 @@ const {
   eliminarMesa,
   generarQR,
   cambiarEstadoMesa,
-  obtenerPedidosMesa
+  obtenerPedidosMesa,
+  liberarMesa
 } = require('../controllers/mesas.controller');
 const { verificarToken, verificarRol } = require('../middleware/auth.middleware');
 
@@ -22,6 +23,7 @@ router.get('/:id/qr', verificarToken, verificarRol('administrador'), generarQR);
 router.post('/', verificarToken, verificarRol('administrador'), crearMesa);
 router.put('/:id', verificarToken, verificarRol('administrador'), actualizarMesa);
 router.put('/:id/estado', verificarToken, verificarRol('mesero', 'administrador'), cambiarEstadoMesa);
+router.put('/:id/liberar', verificarToken, verificarRol('mesero', 'administrador'), liberarMesa);
 router.delete('/:id', verificarToken, verificarRol('administrador'), eliminarMesa);
 
 module.exports = router;

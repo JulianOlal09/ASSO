@@ -1,0 +1,191 @@
+
+================================================================================
+        ANÁLISIS ARQUITECTURA: SISTEMA DE GESTIÓN DE RESTAURANTES
+================================================================================
+
+RESPUESTAS RESUMIDAS A TUS PREGUNTAS:
+
+================================================================================
+1. NAVEGACIÓN: ¿Cómo está configurada?
+================================================================================
+
+Tipo: React Navigation Stack (SIMPLE)
+- NO usa Tab Navigator
+- NO usa Drawer Navigator
+- Es una pila lineal con navegación secuencial
+
+Ubicación: App.js línea 19
+const Stack = createStackNavigator();
+
+Pantallas:
+  Login (inicial) → Admin/Cocina/Mesero (según rol)
+
+Redirección:
+  administrador  → navigation.replace('AdminDashboard')
+  cocina         → navigation.replace('Cocina')
+  mesero         → navigation.replace('Mesero')
+
+================================================================================
+2. AUTENTICACIÓN Y SESIÓN: ¿Cómo se maneja?
+================================================================================
+
+JWT Token:
+- Secret: 'mi_super_secreto_jwt_restaurant_2024'
+- Expiración: 24h
+- Algoritmo: HS256
+
+Flujo:
+1. LoginScreen → useAuth().login(email, password)
+2. authService → POST /api/auth/login
+3. Backend retorna token + usuario
+4. Se guarda en AsyncStorage
+5. Interceptor axios agrega token en todas las peticiones
+6. Backend verifica token con middleware
+
+Backend (auth.middleware.js):
+- Extrae token del header Authorization: Bearer {token}
+- Verifica con jwt.verify(token, JWT_SECRET)
+- Si válido → continúa
+- Si no → 401 Unauthorized
+
+================================================================================
+3. PERSISTENCIA DE DATOS: ¿AsyncStorage?
+================================================================================
+
+SÍ, se usa AsyncStorage (@react-native-async-storage/async-storage)
+
+Qué se guarda:
+- token: String (JWT)
+- usuario: JSON { id, nombre, email, rol }
+
+Cómo se guarda (authService.js):
+  await AsyncStorage.setItem('token', token);
+  await AsyncStorage.setItem('usuario', JSON.stringify(usuario));
+
+Recuperación (AuthProvider):
+  - useEffect() verifica AsyncStorage al montar
+  - Si usuario existe → restaura sesión
+  - Si no → muestra LoginScreen
+
+Logout:
+  - AsyncStorage.removeItem('token')
+  - AsyncStorage.removeItem('usuario')
+
+LIMITACIÓN: CartContext NO persiste en AsyncStorage
+  - Solo en memoria
+  - Se pierde al cerrar app
+
+================================================================================
+4. PANTALLAS/COMPONENTES POR ROL
+================================================================================
+
+ADMINISTRADOR (rol: 'administrador')
+  Principal: AdminDashboardScreen
+  Funcionalidades:
+    - Estadísticas generales
+    - Gestión de Usuarios → GestionUsuariosScreen
+    - Gestión de Menú
+    - Gestión de Mesas → GestionMesasScreen
+    - Ver Pedidos
+    - Reportes
+  WebSocket: join-admin
+
+COCINA (rol: 'cocina')
+  Principal: KitchenScreen
+  Funcionalidades:
+    - Ver pedidos pendientes agrupados
+    - Filtrar por estado (activos/todos/listos)
+    - Marcar items como completados
+    - Notificaciones en tiempo real
+  WebSocket: join-cocina
+
+MESERO (rol: 'mesero')
+  Principal: MeseroDashboardScreen
+  Funcionalidades:
+    - Ver mesas (disponibles/ocupadas)
+    - Ver estadísticas de mesas
+    - Ver pedidos activos
+    - Crear pedidos manuales → CrearPedidoManualScreen
+  Secundarias:
+    - DetalleMesaScreen (detalles de mesa específica)
+    - CrearPedidoManualScreen (nuevo pedido)
+  WebSocket: join-mesero {userId}, join-mesa {mesaId}
+
+================================================================================
+5. ALMACENAMIENTO DE TOKEN DESPUÉS DEL LOGIN
+================================================================================
+
+PASO 1: Login (LoginScreen.js)
+  const usuario = await login(email.trim(), password);
+
+PASO 2: AuthService intercepta (src/services/authService.js)
+  async login(email, password) {
+    const response = await api.post('/auth/login', { email, password });
+    const { token, usuario } = response.data;
+    
+    // GUARDAR EN ASYNCSTORAGE
+    await AsyncStorage.setItem('token', token);
+    await AsyncStorage.setItem('usuario', JSON.stringify(usuario));
+    
+    return { token, usuario };
+  }
+
+PASO 3: AuthContext actualiza (src/contexts/AuthContext.js)
+  const login = async (email, password) => {
+    const { usuario: usuarioData } = await authService.login(email, password);
+    setUsuario(usuarioData);  // Estado global
+    return usuarioData;
+  };
+
+PASO 4: Interceptor de API lo usa (src/config/api.js)
+  api.interceptors.request.use(async (config) => {
+    const token = await AsyncStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = 'Bearer ${token}';
+    }
+    return config;
+  });
+
+PASO 5: Backend verifica (src/middleware/auth.middleware.js)
+  const token = req.headers['authorization']?.split(' ')[1];
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  req.usuario = decoded;
+
+PASO 6: Recuperación al reiniciar (AuthProvider)
+  useEffect(() => {
+    verificarAutenticacion();
+  }, []);
+  
+  const verificarAutenticacion = async () => {
+    const usuarioGuardado = await authService.getUsuarioActual();
+    if (usuarioGuardado) {
+      setUsuario(usuarioGuardado);
+    }
+  };
+
+================================================================================
+ARCHIVOS CLAVE A REVISAR:
+================================================================================
+
+Frontend:
+  - restaurant-app/App.js (navegación)
+  - restaurant-app/src/contexts/AuthContext.js (autenticación global)
+  - restaurant-app/src/config/api.js (interceptores)
+  - restaurant-app/src/services/authService.js (login/logout)
+  - restaurant-app/src/screens/LoginScreen.js (redirección por rol)
+  - restaurant-app/src/screens/AdminDashboardScreen.js
+  - restaurant-app/src/screens/KitchenScreen.js
+  - restaurant-app/src/screens/MeseroDashboardScreen.js
+
+Backend:
+  - backend/src/server.js (WebSocket)
+  - backend/src/middleware/auth.middleware.js (verificación JWT)
+  - backend/src/controllers/auth.controller.js (login logic)
+  - backend/.env (configuración JWT)
+
+================================================================================
+
+DOCUMENTO COMPLETO CREADO: ANALISIS_ARQUITECTURA.md
+
+Este documento contiene toda la información detallada sobre la arquitectura.
+

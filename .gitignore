@@ -63,3 +63,9 @@ coverage/
 # Database
 *.sqlite
 *.db
+
+# Claude Code
+.claude/
+
+# Archivos temporales de Windows
+nul
