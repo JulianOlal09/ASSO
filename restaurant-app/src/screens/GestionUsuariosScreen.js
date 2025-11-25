@@ -11,6 +11,7 @@ import {
   Switch,
   ScrollView,
   RefreshControl,
+  Dimensions,
 } from 'react-native';
 import usuariosService from '../services/usuariosService';
 import authService from '../services/authService';
@@ -201,17 +202,10 @@ export default function GestionUsuariosScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.btnBack}
-        >
-          <Text style={styles.btnBackText}>← Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestión de Usuarios</Text>
+      {/* Botón Nuevo Usuario */}
+      <View style={styles.topBar}>
         <TouchableOpacity style={styles.btnNuevo} onPress={abrirModalNuevo}>
-          <Text style={styles.btnNuevoText}>+ Nuevo</Text>
+          <Text style={styles.btnNuevoText}>+ Nuevo Usuario</Text>
         </TouchableOpacity>
       </View>
 
@@ -351,51 +345,45 @@ export default function GestionUsuariosScreen({ navigation }) {
   );
 }
 
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  header: {
-    backgroundColor: '#2196F3',
-    paddingTop: 40,
-    paddingBottom: 15,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    flex: 1,
-    textAlign: 'center',
-  },
-  btnBack: {
-    paddingVertical: 5,
-  },
-  btnBackText: {
-    color: 'white',
-    fontSize: 16,
+  topBar: {
+    backgroundColor: 'white',
+    paddingHorizontal: isSmallScreen ? 10 : 15,
+    paddingVertical: isSmallScreen ? 10 : 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   btnNuevo: {
-    backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 5,
+    backgroundColor: '#2196F3',
+    paddingHorizontal: isSmallScreen ? 15 : 20,
+    paddingVertical: isSmallScreen ? 10 : 12,
+    borderRadius: 8,
+    alignItems: 'center',
   },
   btnNuevoText: {
-    color: '#2196F3',
+    color: 'white',
     fontWeight: 'bold',
+    fontSize: isSmallScreen ? 14 : 15,
   },
   listContent: {
-    padding: 15,
+    padding: isSmallScreen ? 10 : 15,
   },
   usuarioCard: {
     backgroundColor: 'white',
     borderRadius: 10,
-    padding: 15,
+    padding: isSmallScreen ? 12 : 15,
     marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -410,13 +398,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   usuarioNombre: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 15 : 16,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 5,
   },
   usuarioEmail: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 13 : 14,
     color: '#666',
     marginBottom: 10,
   },
@@ -474,23 +462,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
-    padding: 20,
+    padding: isSmallScreen ? 15 : 20,
   },
   modalContent: {
     backgroundColor: 'white',
     borderRadius: 15,
-    padding: 20,
+    padding: isSmallScreen ? 15 : 20,
     maxHeight: '80%',
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: isSmallScreen ? 20 : 22,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 20,
+    marginBottom: isSmallScreen ? 15 : 20,
     textAlign: 'center',
   },
   label: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 13 : 14,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 8,
@@ -499,8 +487,8 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    padding: isSmallScreen ? 10 : 12,
+    fontSize: isSmallScreen ? 15 : 16,
     borderWidth: 1,
     borderColor: '#ddd',
   },

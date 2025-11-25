@@ -8,7 +8,9 @@ import {
   RefreshControl,
   Alert,
   Platform,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import mesasService from '../services/mesasService';
 import pedidosService from '../services/pedidosService';
@@ -406,24 +408,26 @@ export default function MeseroDashboardScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Panel de Mesero</Text>
-          <Text style={styles.headerSubtitle}>Hola, {usuario?.nombre}</Text>
+      <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>Panel de Mesero</Text>
+            <Text style={styles.headerSubtitle}>Hola, {usuario?.nombre}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.btnLogout}
+            onPress={async () => {
+              await logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            }}
+          >
+            <Text style={styles.btnLogoutText}>Salir</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.btnLogout}
-          onPress={async () => {
-            await logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          }}
-        >
-          <Text style={styles.btnLogoutText}>Salir</Text>
-        </TouchableOpacity>
-      </View>
+      </SafeAreaView>
 
       <ScrollView
         style={styles.scrollView}
@@ -512,71 +516,77 @@ export default function MeseroDashboardScreen({ navigation }) {
   );
 }
 
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  headerSafeArea: {
+    backgroundColor: '#4CAF50',
+  },
   header: {
     backgroundColor: '#4CAF50',
-    paddingTop: 40,
     paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: isSmallScreen ? 12 : 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    minHeight: 100,
+    minHeight: isSmallScreen ? 90 : 100,
   },
   scrollView: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: isSmallScreen ? 22 : 28,
     fontWeight: 'bold',
     color: 'white',
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     color: 'rgba(255,255,255,0.9)',
     marginTop: 5,
   },
   btnLogout: {
     backgroundColor: 'white',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingHorizontal: isSmallScreen ? 12 : 15,
+    paddingVertical: isSmallScreen ? 6 : 8,
     borderRadius: 5,
   },
   btnLogoutText: {
     color: '#4CAF50',
     fontWeight: 'bold',
+    fontSize: isSmallScreen ? 13 : 14,
   },
   content: {
-    padding: 15,
+    padding: isSmallScreen ? 10 : 15,
     paddingBottom: 100,
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: isSmallScreen ? 18 : 22,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 25,
-    marginBottom: 20,
+    marginTop: isSmallScreen ? 15 : 25,
+    marginBottom: isSmallScreen ? 12 : 20,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 15,
+    gap: isSmallScreen ? 10 : 15,
   },
   statCard: {
     backgroundColor: 'white',
     borderRadius: 10,
-    padding: 20,
-    minWidth: 200,
-    flex: 1,
-    marginBottom: 15,
+    padding: isSmallScreen ? 15 : 20,
+    minWidth: isSmallScreen ? '100%' : 200,
+    flex: isSmallScreen ? 0 : 1,
+    marginBottom: isSmallScreen ? 10 : 15,
     borderTopWidth: 4,
     alignItems: 'center',
     elevation: 2,
@@ -633,7 +643,7 @@ const styles = StyleSheet.create({
   mesaCard: {
     backgroundColor: 'white',
     borderRadius: 10,
-    padding: 20,
+    padding: isSmallScreen ? 15 : 20,
     marginBottom: 10,
     borderLeftWidth: 4,
     elevation: 2,
@@ -641,7 +651,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    minHeight: 150,
+    minHeight: isSmallScreen ? 130 : 150,
   },
   mesaHeader: {
     flexDirection: 'row',
@@ -650,7 +660,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   mesaNumero: {
-    fontSize: 20,
+    fontSize: isSmallScreen ? 18 : 20,
     fontWeight: 'bold',
     color: '#333',
   },

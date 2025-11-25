@@ -11,7 +11,9 @@ import {
   ScrollView,
   RefreshControl,
   Platform,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import menuService from '../services/menuService';
 
 export default function GestionMenuScreen({ navigation }) {
@@ -216,23 +218,25 @@ export default function GestionMenuScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnBack}>
-          <Text style={styles.btnBackText}>← Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestión de Menú</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            style={[styles.btnNuevo, styles.btnCategoria]}
-            onPress={abrirModalNuevaCategoria}
-          >
-            <Text style={styles.btnNuevoText}>+ Categoría</Text>
+      <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnBack}>
+            <Text style={styles.btnBackText}>← Volver</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.btnNuevo} onPress={abrirModalNuevoPlatillo}>
-            <Text style={styles.btnNuevoText}>+ Platillo</Text>
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Gestión de Menú</Text>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity
+              style={[styles.btnNuevo, styles.btnCategoria]}
+              onPress={abrirModalNuevaCategoria}
+            >
+              <Text style={styles.btnNuevoText}>+ Categoría</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.btnNuevo} onPress={abrirModalNuevoPlatillo}>
+              <Text style={styles.btnNuevoText}>+ Platillo</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </SafeAreaView>
 
       {/* Lista de Platillos */}
       <FlatList
@@ -437,42 +441,50 @@ export default function GestionMenuScreen({ navigation }) {
   );
 }
 
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  headerSafeArea: {
+    backgroundColor: '#4CAF50',
+  },
   header: {
     backgroundColor: '#4CAF50',
-    paddingTop: 40,
     paddingBottom: 15,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
+    paddingHorizontal: isSmallScreen ? 10 : 20,
+    flexDirection: isSmallScreen ? 'column' : 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: isSmallScreen ? 10 : 0,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: isSmallScreen ? 18 : 20,
     fontWeight: 'bold',
     color: 'white',
-    flex: 1,
+    flex: isSmallScreen ? 0 : 1,
     textAlign: 'center',
   },
   btnBack: {
     paddingVertical: 5,
+    alignSelf: isSmallScreen ? 'flex-start' : 'auto',
   },
   btnBackText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
   },
   headerButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: isSmallScreen ? 6 : 8,
+    alignSelf: isSmallScreen ? 'flex-end' : 'auto',
   },
   btnNuevo: {
     backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: isSmallScreen ? 10 : 12,
+    paddingVertical: isSmallScreen ? 5 : 6,
     borderRadius: 5,
   },
   btnCategoria: {
@@ -481,16 +493,16 @@ const styles = StyleSheet.create({
   btnNuevoText: {
     color: '#4CAF50',
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: isSmallScreen ? 11 : 13,
   },
   listContent: {
-    padding: 15,
+    padding: isSmallScreen ? 10 : 15,
     paddingBottom: 100,
   },
   platilloCard: {
     backgroundColor: 'white',
     borderRadius: 10,
-    padding: 15,
+    padding: isSmallScreen ? 12 : 15,
     marginBottom: 10,
     elevation: 2,
     shadowColor: '#000',
@@ -506,19 +518,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   platilloNombre: {
-    fontSize: 18,
+    fontSize: isSmallScreen ? 16 : 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 5,
   },
   platilloCategoria: {
-    fontSize: 12,
+    fontSize: isSmallScreen ? 11 : 12,
     color: '#4CAF50',
     fontWeight: '600',
     marginBottom: 5,
   },
   platilloDescripcion: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 13 : 14,
     color: '#666',
     marginBottom: 10,
   },

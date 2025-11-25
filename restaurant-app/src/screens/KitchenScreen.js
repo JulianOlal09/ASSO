@@ -9,7 +9,9 @@ import {
   RefreshControl,
   ScrollView,
   Platform,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import pedidosService from '../services/pedidosService';
 import { io } from 'socket.io-client';
@@ -236,26 +238,28 @@ export default function KitchenScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>COCINA</Text>
-          <Text style={styles.headerSubtitle}>
-            {pedidosFiltrados.length} {pedidosFiltrados.length === 1 ? 'pedido' : 'pedidos'}
-          </Text>
+      <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>COCINA</Text>
+            <Text style={styles.headerSubtitle}>
+              {pedidosFiltrados.length} {pedidosFiltrados.length === 1 ? 'pedido' : 'pedidos'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.btnLogout}
+            onPress={async () => {
+              await logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            }}
+          >
+            <Text style={styles.btnLogoutText}>SALIR</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.btnLogout}
-          onPress={async () => {
-            await logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          }}
-        >
-          <Text style={styles.btnLogoutText}>SALIR</Text>
-        </TouchableOpacity>
-      </View>
+      </SafeAreaView>
 
       <View style={styles.filtrosContainer}>
         <TouchableOpacity
@@ -309,42 +313,47 @@ export default function KitchenScreen({ navigation }) {
   );
 }
 
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ECEFF1',
   },
+  headerSafeArea: {
+    backgroundColor: '#263238',
+  },
   header: {
     backgroundColor: '#263238',
-    paddingTop: 40,
     paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: isSmallScreen ? 12 : 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     elevation: 4,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: isSmallScreen ? 24 : 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
     letterSpacing: 1,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     color: '#B0BEC5',
     marginTop: 2,
   },
   btnLogout: {
     backgroundColor: '#FF5252',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: isSmallScreen ? 12 : 20,
+    paddingVertical: isSmallScreen ? 8 : 12,
     borderRadius: 8,
   },
   btnLogoutText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: isSmallScreen ? 13 : 16,
   },
   filtrosContainer: {
     flexDirection: 'row',
@@ -406,13 +415,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mesaNumero: {
-    fontSize: 28,
+    fontSize: isSmallScreen ? 22 : 28,
     fontWeight: 'bold',
     color: '#263238',
     letterSpacing: 0.5,
   },
   pedidoId: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 12 : 14,
     color: '#78909C',
     marginTop: 2,
   },
@@ -438,70 +447,71 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   itemRow: {
-    flexDirection: 'row',
+    flexDirection: isSmallScreen ? 'column' : 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: isSmallScreen ? 'stretch' : 'center',
     backgroundColor: '#F5F5F5',
-    padding: 14,
+    padding: isSmallScreen ? 12 : 14,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E0E0E0',
+    gap: isSmallScreen ? 10 : 0,
   },
   itemLeft: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: isSmallScreen ? 8 : 10,
   },
   itemCantidad: {
-    fontSize: 24,
+    fontSize: isSmallScreen ? 20 : 24,
     fontWeight: 'bold',
     color: '#263238',
-    minWidth: 45,
+    minWidth: isSmallScreen ? 35 : 45,
   },
   itemDetalle: {
     flex: 1,
   },
   itemNombre: {
-    fontSize: 18,
+    fontSize: isSmallScreen ? 16 : 18,
     fontWeight: '600',
     color: '#263238',
     marginBottom: 4,
   },
   itemNotas: {
-    fontSize: 15,
+    fontSize: isSmallScreen ? 13 : 15,
     color: '#FF6F00',
     fontWeight: '500',
     marginBottom: 4,
     fontStyle: 'italic',
   },
   itemTiempo: {
-    fontSize: 13,
+    fontSize: isSmallScreen ? 12 : 13,
     color: '#78909C',
   },
   itemAcciones: {
-    alignItems: 'flex-end',
+    alignItems: isSmallScreen ? 'stretch' : 'flex-end',
     gap: 8,
   },
   estadoChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingHorizontal: isSmallScreen ? 12 : 16,
+    paddingVertical: isSmallScreen ? 5 : 6,
     borderRadius: 16,
-    minWidth: 70,
+    minWidth: isSmallScreen ? 60 : 70,
     alignItems: 'center',
   },
   estadoChipText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: isSmallScreen ? 12 : 13,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   btnAccion: {
     backgroundColor: '#2196F3',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingHorizontal: isSmallScreen ? 16 : 24,
+    paddingVertical: isSmallScreen ? 10 : 12,
     borderRadius: 8,
-    minWidth: 100,
+    minWidth: isSmallScreen ? 80 : 100,
     alignItems: 'center',
     elevation: 2,
   },
@@ -510,7 +520,7 @@ const styles = StyleSheet.create({
   },
   btnAccionText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },

@@ -11,7 +11,9 @@ import {
   ScrollView,
   RefreshControl,
   Image,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import mesasService from '../services/mesasService';
 import usuariosService from '../services/usuariosService';
@@ -228,18 +230,20 @@ export default function GestionMesasScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.btnBack}
-        >
-          <Text style={styles.btnBackText}>← Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestión de Mesas</Text>
-        <TouchableOpacity style={styles.btnNuevo} onPress={abrirModalNuevo}>
-          <Text style={styles.btnNuevoText}>+ Nueva</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.btnBack}
+          >
+            <Text style={styles.btnBackText}>← Volver</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Gestión de Mesas</Text>
+          <TouchableOpacity style={styles.btnNuevo} onPress={abrirModalNuevo}>
+            <Text style={styles.btnNuevoText}>+ Nueva</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
 
       {/* Lista de Mesas */}
       <FlatList
@@ -410,22 +414,28 @@ export default function GestionMesasScreen({ navigation }) {
   );
 }
 
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
+const qrSize = isSmallScreen ? Math.min(screenWidth - 80, 250) : 300;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  headerSafeArea: {
+    backgroundColor: '#FF9800',
+  },
   header: {
     backgroundColor: '#FF9800',
-    paddingTop: 40,
     paddingBottom: 15,
-    paddingHorizontal: 20,
+    paddingHorizontal: isSmallScreen ? 10 : 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: isSmallScreen ? 18 : 20,
     fontWeight: 'bold',
     color: 'white',
     flex: 1,
@@ -436,26 +446,27 @@ const styles = StyleSheet.create({
   },
   btnBackText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
   },
   btnNuevo: {
     backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: isSmallScreen ? 10 : 12,
+    paddingVertical: isSmallScreen ? 5 : 6,
     borderRadius: 5,
   },
   btnNuevoText: {
     color: '#FF9800',
     fontWeight: 'bold',
+    fontSize: isSmallScreen ? 12 : 14,
   },
   listContent: {
-    padding: 15,
+    padding: isSmallScreen ? 10 : 15,
     paddingBottom: 100,
   },
   mesaCard: {
     backgroundColor: 'white',
     borderRadius: 10,
-    padding: 15,
+    padding: isSmallScreen ? 12 : 15,
     marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -652,12 +663,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   qrImage: {
-    width: 300,
-    height: 300,
+    width: qrSize,
+    height: qrSize,
     marginBottom: 20,
   },
   qrUrl: {
-    fontSize: 12,
+    fontSize: isSmallScreen ? 11 : 12,
     color: '#666',
     textAlign: 'center',
     marginBottom: 20,

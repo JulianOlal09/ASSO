@@ -8,7 +8,9 @@ import {
   Alert,
   RefreshControl,
   Platform,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import reportesService from '../services/reportesService';
 import { io } from 'socket.io-client';
@@ -89,26 +91,28 @@ export default function AdminDashboardScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Panel de Administración</Text>
-          <Text style={styles.headerSubtitle}>
-            Bienvenido, {usuario?.nombre}
-          </Text>
+      <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Admin</Text>
+            <Text style={styles.headerSubtitle}>
+              {usuario?.nombre}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.btnLogout}
+            onPress={async () => {
+              await logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            }}
+          >
+            <Text style={styles.btnLogoutText}>Salir</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.btnLogout}
-          onPress={async () => {
-            await logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          }}
-        >
-          <Text style={styles.btnLogoutText}>Salir</Text>
-        </TouchableOpacity>
-      </View>
+      </SafeAreaView>
 
       <ScrollView
         style={styles.scrollView}
@@ -169,13 +173,6 @@ export default function AdminDashboardScreen({ navigation }) {
           onPress={() => navigation.navigate('GestionMesas')}
         />
 
-        <MenuItem
-          title="Pedidos"
-          icon="📋"
-          color="#9C27B0"
-          onPress={() => navigation.navigate('PedidosAdmin')}
-        />
-
         <Text style={styles.sectionTitle}>Reportes</Text>
 
         <MenuItem
@@ -196,78 +193,92 @@ export default function AdminDashboardScreen({ navigation }) {
   );
 }
 
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  headerSafeArea: {
+    backgroundColor: '#2196F3',
+  },
   header: {
     backgroundColor: '#2196F3',
-    paddingTop: 40,
-    paddingBottom: 25,
-    paddingHorizontal: 20,
+    paddingHorizontal: isSmallScreen ? 12 : 16,
+    paddingVertical: isSmallScreen ? 12 : 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    minHeight: 110,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
   },
+  headerContent: {
+    flex: 1,
+    marginRight: isSmallScreen ? 8 : 12,
+  },
   scrollView: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: isSmallScreen ? 18 : 22,
     fontWeight: 'bold',
     color: 'white',
-    letterSpacing: 1,
-    textAlign: 'center',
+    marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 12 : 14,
     color: 'rgba(255,255,255,0.9)',
-    marginTop: 5,
   },
   btnLogout: {
     backgroundColor: 'white',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 5,
+    paddingHorizontal: isSmallScreen ? 12 : 20,
+    paddingVertical: isSmallScreen ? 8 : 10,
+    borderRadius: 8,
+    minWidth: isSmallScreen ? 60 : 70,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   btnLogoutText: {
     color: '#2196F3',
     fontWeight: 'bold',
+    fontSize: isSmallScreen ? 13 : 15,
   },
   content: {
-    padding: 15,
+    padding: isSmallScreen ? 10 : 15,
     paddingBottom: 100,
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: isSmallScreen ? 18 : 22,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 25,
-    marginBottom: 20,
+    marginTop: isSmallScreen ? 15 : 25,
+    marginBottom: isSmallScreen ? 12 : 20,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 15,
+    gap: isSmallScreen ? 10 : 15,
   },
   statCard: {
     backgroundColor: 'white',
     borderRadius: 10,
-    padding: 20,
-    minWidth: 200,
-    flex: 1,
-    marginBottom: 15,
+    padding: isSmallScreen ? 15 : 20,
+    minWidth: isSmallScreen ? '100%' : 200,
+    flex: isSmallScreen ? 0 : 1,
+    marginBottom: isSmallScreen ? 10 : 15,
     borderTopWidth: 4,
     elevation: 2,
     shadowColor: '#000',
@@ -276,23 +287,23 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   statTitle: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 13 : 14,
     color: '#666',
     marginBottom: 8,
   },
   statValue: {
-    fontSize: 28,
+    fontSize: isSmallScreen ? 24 : 28,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   statSubtitle: {
-    fontSize: 13,
+    fontSize: isSmallScreen ? 12 : 13,
     color: '#999',
   },
   menuItem: {
     backgroundColor: 'white',
     borderRadius: 10,
-    padding: 18,
+    padding: isSmallScreen ? 14 : 18,
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -302,20 +313,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    minHeight: 70,
+    minHeight: isSmallScreen ? 60 : 70,
   },
   menuIcon: {
-    fontSize: 32,
-    marginRight: 20,
+    fontSize: isSmallScreen ? 28 : 32,
+    marginRight: isSmallScreen ? 12 : 20,
   },
   menuTitle: {
-    fontSize: 18,
+    fontSize: isSmallScreen ? 16 : 18,
     fontWeight: '600',
     color: '#333',
     flex: 1,
   },
   menuArrow: {
-    fontSize: 24,
+    fontSize: isSmallScreen ? 20 : 24,
     color: '#999',
   },
 });

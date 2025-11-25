@@ -8,7 +8,9 @@ import {
   RefreshControl,
   Platform,
   Alert,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import reportesService from '../services/reportesService';
 
 // Helper para alertas compatible con web y móvil
@@ -61,13 +63,15 @@ export default function ReportePlatillosScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.btnBack}>← Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Platillos Más Vendidos</Text>
-        <View style={{ width: 60 }} />
-      </View>
+      <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.btnBack}>← Volver</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Platillos Más Vendidos</Text>
+          <View style={{ width: 60 }} />
+        </View>
+      </SafeAreaView>
 
       <ScrollView
         style={styles.scrollView}
@@ -216,27 +220,32 @@ export default function ReportePlatillosScreen({ navigation }) {
   );
 }
 
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  headerSafeArea: {
+    backgroundColor: '#FF5722',
+  },
   header: {
     backgroundColor: '#FF5722',
-    paddingTop: 40,
     paddingBottom: 15,
-    paddingHorizontal: 20,
+    paddingHorizontal: isSmallScreen ? 10 : 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   btnBack: {
     color: 'white',
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     fontWeight: '600',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: isSmallScreen ? 18 : 22,
     fontWeight: 'bold',
     color: 'white',
   },
@@ -244,7 +253,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 15,
+    padding: isSmallScreen ? 10 : 15,
     paddingBottom: 100,
     maxWidth: 1200,
     width: '100%',
@@ -320,15 +329,16 @@ const styles = StyleSheet.create({
   },
   resumenItem: {
     alignItems: 'center',
-    minWidth: 120,
+    minWidth: isSmallScreen ? 100 : 120,
   },
   resumenLabel: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 12 : 14,
     color: '#666',
     marginBottom: 8,
+    textAlign: 'center',
   },
   resumenValor: {
-    fontSize: 26,
+    fontSize: isSmallScreen ? 22 : 26,
     fontWeight: 'bold',
     color: '#FF5722',
   },
@@ -367,13 +377,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   platilloNombre: {
-    fontSize: 18,
+    fontSize: isSmallScreen ? 16 : 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 4,
   },
   platilloPrecio: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 13 : 14,
     color: '#666',
   },
   platilloCantidad: {

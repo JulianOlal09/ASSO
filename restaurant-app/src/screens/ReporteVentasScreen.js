@@ -11,7 +11,9 @@ import {
   Alert,
   Modal,
   Pressable,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import reportesService from '../services/reportesService';
 
 // Helper para alertas compatible con web y móvil
@@ -121,13 +123,15 @@ export default function ReporteVentasScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.btnBack}>← Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Reporte de Ventas</Text>
-        <View style={{ width: 60 }} />
-      </View>
+      <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.btnBack}>← Volver</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Reporte de Ventas</Text>
+          <View style={{ width: 60 }} />
+        </View>
+      </SafeAreaView>
 
       <ScrollView
         style={styles.scrollView}
@@ -297,27 +301,32 @@ export default function ReporteVentasScreen({ navigation }) {
   );
 }
 
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  headerSafeArea: {
+    backgroundColor: '#4CAF50',
+  },
   header: {
     backgroundColor: '#4CAF50',
-    paddingTop: 40,
     paddingBottom: 15,
-    paddingHorizontal: 20,
+    paddingHorizontal: isSmallScreen ? 10 : 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   btnBack: {
     color: 'white',
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     fontWeight: '600',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: isSmallScreen ? 18 : 22,
     fontWeight: 'bold',
     color: 'white',
   },
@@ -325,7 +334,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 15,
+    padding: isSmallScreen ? 10 : 15,
     paddingBottom: 100,
     maxWidth: 1200,
     width: '100%',
@@ -349,7 +358,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   filtrosRow: {
-    flexDirection: 'row',
+    flexDirection: isSmallScreen ? 'column' : 'row',
     gap: 15,
     marginBottom: 15,
   },
@@ -357,7 +366,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   filtroLabel: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 13 : 14,
     color: '#666',
     marginBottom: 8,
     fontWeight: '500',
@@ -367,27 +376,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    padding: isSmallScreen ? 10 : 12,
+    fontSize: isSmallScreen ? 15 : 16,
     color: '#333',
   },
   botonesRapidos: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: isSmallScreen ? 6 : 8,
     marginBottom: 15,
   },
   btnRapido: {
     backgroundColor: '#E8F5E9',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: isSmallScreen ? 8 : 10,
+    paddingHorizontal: isSmallScreen ? 12 : 16,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#4CAF50',
   },
   btnRapidoText: {
     color: '#2E7D32',
-    fontSize: 14,
+    fontSize: isSmallScreen ? 12 : 14,
     fontWeight: '600',
   },
   btnFiltrar: {

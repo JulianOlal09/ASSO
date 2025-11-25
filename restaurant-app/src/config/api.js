@@ -35,7 +35,7 @@ const storage = {
 // - Windows: ejecuta "ipconfig" en cmd
 // - Mac: ejecuta "ifconfig | grep inet" en terminal
 // - Linux: ejecuta "hostname -I" en terminal
-const LOCAL_IP = '192.168.100.192'; // ⚠️ Tu IP Local
+const LOCAL_IP = '148.220.209.94'; // ⚠️ Tu IP Local
 
 // Usar localhost en web, IP local en dispositivos móviles
 const API_URL = Platform.OS === 'web'
