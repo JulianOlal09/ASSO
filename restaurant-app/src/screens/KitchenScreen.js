@@ -313,11 +313,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ECEFF1',
-    ...(Platform.OS === 'web' && {
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-    }),
   },
   header: {
     backgroundColor: '#263238',

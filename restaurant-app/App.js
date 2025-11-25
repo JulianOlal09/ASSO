@@ -20,6 +20,8 @@ import GestionMenuScreen from './src/screens/GestionMenuScreen';
 import MeseroDashboardScreen from './src/screens/MeseroDashboardScreen';
 import DetalleMesaScreen from './src/screens/DetalleMesaScreen';
 import CrearPedidoManualScreen from './src/screens/CrearPedidoManualScreen';
+import ReporteVentasScreen from './src/screens/ReporteVentasScreen';
+import ReportePlatillosScreen from './src/screens/ReportePlatillosScreen';
 
 const Stack = createStackNavigator();
 
@@ -34,6 +36,8 @@ const linking = {
       AdminDashboard: 'admin',
       GestionUsuarios: 'admin/usuarios',
       GestionMesas: 'admin/mesas',
+      ReporteVentas: 'admin/reportes/ventas',
+      ReportePlatillos: 'admin/reportes/platillos',
       Mesero: 'mesero',
       DetalleMesa: 'mesero/mesa/:mesaId',
       CrearPedidoManual: 'mesero/crear-pedido',
@@ -79,8 +83,10 @@ function AppNavigator() {
         <Stack.Screen name="GestionUsuarios" component={GestionUsuariosScreen} options={{ title: 'Gestión de Usuarios' }} />
         <Stack.Screen name="GestionMesas" component={GestionMesasScreen} options={{ title: 'Gestión de Mesas' }} />
         <Stack.Screen name="GestionMenu" component={GestionMenuScreen} options={{ title: 'Gestión de Menú', headerShown: false }} />
+        <Stack.Screen name="ReporteVentas" component={ReporteVentasScreen} options={{ title: 'Reporte de Ventas', headerShown: false }} />
+        <Stack.Screen name="ReportePlatillos" component={ReportePlatillosScreen} options={{ title: 'Platillos Más Vendidos', headerShown: false }} />
         <Stack.Screen name="Mesero" component={MeseroDashboardScreen} options={{ title: 'Panel de Mesero', headerShown: false }} />
-        <Stack.Screen name="DetalleMesa" component={DetalleMesaScreen} options={{ title: 'Detalle de Mesa' }} />
+        <Stack.Screen name="DetalleMesa" component={DetalleMesaScreen} options={{ title: 'Detalle de Mesa', headerShown: false }} />
         <Stack.Screen name="CrearPedidoManual" component={CrearPedidoManualScreen} options={{ title: 'Crear Pedido' }} />
       </Stack.Navigator>
     </NavigationContainer>

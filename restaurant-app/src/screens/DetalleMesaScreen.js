@@ -10,6 +10,40 @@ import {
   Platform,
 } from 'react-native';
 import mesasService from '../services/mesasService';
+import pedidosService from '../services/pedidosService';
+import { io } from 'socket.io-client';
+import { API_URL } from '../config/api';
+
+// Helper para confirmación compatible con web y móvil
+const confirmar = (titulo, mensaje, onConfirm, onCancel) => {
+  if (Platform.OS === 'web') {
+    const resultado = window.confirm(`${titulo}\n\n${mensaje}`);
+    if (resultado) {
+      onConfirm();
+    } else if (onCancel) {
+      onCancel();
+    }
+  } else {
+    Alert.alert(
+      titulo,
+      mensaje,
+      [
+        { text: 'Cancelar', style: 'cancel', onPress: onCancel },
+        { text: 'Confirmar', style: 'default', onPress: onConfirm }
+      ]
+    );
+  }
+};
+
+// Helper para alertas compatible con web y móvil
+const mostrarAlerta = (titulo, mensaje, callback) => {
+  if (Platform.OS === 'web') {
+    window.alert(`${titulo}\n\n${mensaje}`);
+    if (callback) callback();
+  } else {
+    Alert.alert(titulo, mensaje, [{ text: 'OK', onPress: callback }]);
+  }
+};
 
 export default function DetalleMesaScreen({ route, navigation }) {
   const { mesaId } = route.params;
@@ -20,6 +54,26 @@ export default function DetalleMesaScreen({ route, navigation }) {
 
   useEffect(() => {
     cargarDatos();
+
+    // Conectar WebSocket para actualizaciones en tiempo real
+    const socket = io(API_URL.replace('/api', ''));
+    socket.emit('join-mesa', mesaId);
+
+    socket.on('pedido-confirmado', () => {
+      cargarDatos();
+    });
+
+    socket.on('pedido-actualizado', () => {
+      cargarDatos();
+    });
+
+    socket.on('item-actualizado', () => {
+      cargarDatos();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, [mesaId]);
 
   const cargarDatos = async () => {
@@ -45,42 +99,81 @@ export default function DetalleMesaScreen({ route, navigation }) {
     }
   };
 
-  const cambiarEstado = async (nuevoEstado) => {
+
+  const marcarPedidoEntregado = async (pedidoId) => {
+    console.log('🔄 Intentando marcar pedido como entregado:', pedidoId);
+
+    confirmar(
+      'Marcar como Entregado',
+      '¿Confirmas que este pedido ha sido entregado al cliente?',
+      async () => {
+        try {
+          console.log('✅ Confirmado. Actualizando pedido:', pedidoId);
+          setLoading(true);
+
+          const resultado = await pedidosService.actualizarEstadoPedido(pedidoId, 'entregado');
+          console.log('✅ Pedido actualizado exitosamente:', resultado);
+
+          // Recargar datos para actualizar la vista
+          await cargarDatos();
+
+          mostrarAlerta(
+            'Pedido Entregado',
+            'El pedido ha sido marcado como entregado correctamente.\n\n' +
+            '✓ Si todos los pedidos están entregados, ahora puedes liberar la mesa.'
+          );
+        } catch (error) {
+          console.error('❌ Error completo al marcar pedido:', error);
+          console.error('❌ Error response:', error.response);
+          console.error('❌ Error data:', error.response?.data);
+
+          const mensajeError = error.error || error.message || 'No se pudo marcar el pedido como entregado';
+
+          mostrarAlerta(
+            'Error',
+            `No se pudo marcar el pedido como entregado.\n\nDetalle: ${mensajeError}`
+          );
+        } finally {
+          setLoading(false);
+        }
+      }
+    );
+  };
+
+  const liberarMesa = async () => {
     try {
-      await mesasService.cambiarEstado(mesaId, nuevoEstado);
-      Alert.alert('Éxito', 'Estado actualizado correctamente');
-      cargarDatos();
+      await mesasService.liberarMesa(mesaId);
+      Alert.alert(
+        'Éxito',
+        `Mesa ${mesa.numero} liberada correctamente`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
     } catch (error) {
-      Alert.alert('Error', 'No se pudo cambiar el estado');
+      const mensaje = error.error || 'No se pudo liberar la mesa';
+      Alert.alert('Error', mensaje);
     }
   };
 
-  const mostrarOpcionesEstado = () => {
-    Alert.alert(
-      'Cambiar Estado',
-      `Mesa ${mesa?.numero}`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Disponible',
-          onPress: () => cambiarEstado('disponible'),
-        },
-        {
-          text: 'Ocupada',
-          onPress: () => cambiarEstado('ocupada'),
-        },
-        {
-          text: 'Reservada',
-          onPress: () => cambiarEstado('reservada'),
-        },
-        {
-          text: 'Mantenimiento',
-          onPress: () => cambiarEstado('mantenimiento'),
-          style: 'destructive',
-        },
-      ]
+  const confirmarLiberarMesa = () => {
+    const pedidosActivos = pedidos.filter(
+      p => p.estado !== 'entregado' && p.estado !== 'cancelado'
+    );
+
+    if (pedidosActivos.length > 0) {
+      mostrarAlerta(
+        'No se puede liberar',
+        `La mesa tiene ${pedidosActivos.length} pedido(s) activo(s). Debes marcar todos los pedidos como entregados antes de liberar la mesa.`
+      );
+      return;
+    }
+
+    confirmar(
+      'Liberar Mesa',
+      `¿Estás seguro de que deseas liberar la Mesa ${mesa.numero}?\n\nEsto cambiará su estado a disponible.`,
+      () => liberarMesa()
     );
   };
+
 
   const getEstadoColor = (estado) => {
     switch (estado) {
@@ -106,15 +199,33 @@ export default function DetalleMesaScreen({ route, navigation }) {
       case 'listo':
         return '#4CAF50';
       case 'entregado':
-        return '#666';
+        return '#9E9E9E';
+      case 'cancelado':
+        return '#F44336';
       default:
-        return '#999';
+        return '#666';
+    }
+  };
+
+  const getEstadoPedidoLabel = (estado) => {
+    switch (estado) {
+      case 'pendiente':
+        return '⏳ Pendiente';
+      case 'en_preparacion':
+        return '🔥 En Preparación';
+      case 'listo':
+        return '✅ Listo para Servir';
+      case 'entregado':
+        return '✓ Entregado';
+      case 'cancelado':
+        return '✗ Cancelado';
+      default:
+        return estado;
     }
   };
 
   const calcularTotalPedido = (pedido) => {
     if (!pedido.items) return 0;
-    // Los items ya vienen parseados desde el backend
     const items = Array.isArray(pedido.items) ? pedido.items : JSON.parse(pedido.items);
     return items.reduce((sum, item) => sum + parseFloat(item.subtotal || 0), 0);
   };
@@ -149,6 +260,10 @@ export default function DetalleMesaScreen({ route, navigation }) {
     (p) => p.estado !== 'entregado' && p.estado !== 'cancelado'
   );
 
+  const totalGeneral = pedidos
+    .filter(p => p.estado !== 'cancelado')
+    .reduce((sum, p) => sum + parseFloat(p.total || 0), 0);
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -181,6 +296,11 @@ export default function DetalleMesaScreen({ route, navigation }) {
           </View>
 
           <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Mesero:</Text>
+            <Text style={styles.infoValue}>{mesa.mesero_nombre || 'Sin asignar'}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Estado:</Text>
             <View
               style={[
@@ -194,34 +314,48 @@ export default function DetalleMesaScreen({ route, navigation }) {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.btnCambiarEstado}
-            onPress={mostrarOpcionesEstado}
-          >
-            <Text style={styles.btnCambiarEstadoText}>
-              Cambiar Estado de Mesa
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Acciones Rápidas */}
-        <Text style={styles.sectionTitle}>⚡ Acciones</Text>
-
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() =>
-            navigation.navigate('CrearPedidoManual', { mesaId: mesa.id })
-          }
-        >
-          <Text style={styles.actionIcon}>➕</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.actionTitle}>Crear Nuevo Pedido</Text>
-            <Text style={styles.actionSubtitle}>
-              Registrar pedido manualmente
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Total Consumo:</Text>
+            <Text style={[styles.infoValue, { color: '#4CAF50', fontSize: 18, fontWeight: 'bold' }]}>
+              ${totalGeneral.toFixed(2)}
             </Text>
           </View>
-          <Text style={styles.actionArrow}>→</Text>
+        </View>
+
+        {/* Botón de Acción: Liberar Mesa */}
+        <TouchableOpacity
+          style={[
+            styles.btnLiberarFull,
+            pedidosActivos.length > 0 && styles.btnLiberarDisabled
+          ]}
+          onPress={confirmarLiberarMesa}
+          disabled={pedidosActivos.length > 0}
+        >
+          <Text style={styles.btnLiberarIcon}>🔓</Text>
+          <Text style={styles.btnLiberarText}>
+            {pedidosActivos.length > 0 ? 'Tiene Pedidos Activos - No se puede liberar' : 'Liberar Mesa'}
+          </Text>
         </TouchableOpacity>
+
+        {/* Resumen de Pedidos */}
+        <View style={styles.resumenContainer}>
+          <View style={styles.resumenItem}>
+            <Text style={styles.resumenLabel}>Total Pedidos:</Text>
+            <Text style={styles.resumenValue}>{pedidos.length}</Text>
+          </View>
+          <View style={styles.resumenItem}>
+            <Text style={styles.resumenLabel}>Activos:</Text>
+            <Text style={[styles.resumenValue, { color: '#FF9800' }]}>
+              {pedidosActivos.length}
+            </Text>
+          </View>
+          <View style={styles.resumenItem}>
+            <Text style={styles.resumenLabel}>Entregados:</Text>
+            <Text style={[styles.resumenValue, { color: '#4CAF50' }]}>
+              {pedidos.filter(p => p.estado === 'entregado').length}
+            </Text>
+          </View>
+        </View>
 
         {/* Pedidos Activos */}
         <Text style={styles.sectionTitle}>
@@ -230,40 +364,55 @@ export default function DetalleMesaScreen({ route, navigation }) {
 
         {pedidosActivos.length > 0 ? (
           pedidosActivos.map((pedido) => {
-            // Los items ya vienen parseados desde el backend
-            const items = Array.isArray(pedido.items) ? pedido.items : (pedido.items ? JSON.parse(pedido.items) : []);
-            const total = calcularTotalPedido(pedido);
+            const items = Array.isArray(pedido.items)
+              ? pedido.items
+              : (pedido.items ? JSON.parse(pedido.items) : []);
+            const total = parseFloat(pedido.total || 0);
 
             return (
               <View key={pedido.id} style={styles.pedidoCard}>
                 <View style={styles.pedidoHeader}>
-                  <Text style={styles.pedidoId}>Pedido #{pedido.id}</Text>
+                  <View>
+                    <Text style={styles.pedidoId}>Pedido #{pedido.id}</Text>
+                    <Text style={styles.pedidoFecha}>
+                      {new Date(pedido.created_at).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </Text>
+                  </View>
                   <View
                     style={[
                       styles.estadoPedidoBadge,
-                      {
-                        backgroundColor: getEstadoPedidoColor(pedido.estado),
-                      },
+                      { backgroundColor: getEstadoPedidoColor(pedido.estado) },
                     ]}
                   >
                     <Text style={styles.estadoPedidoText}>
-                      {pedido.estado.replace('_', ' ').toUpperCase()}
+                      {getEstadoPedidoLabel(pedido.estado)}
                     </Text>
                   </View>
                 </View>
 
-                <Text style={styles.pedidoFecha}>
-                  {new Date(pedido.created_at).toLocaleString()}
-                </Text>
-
+                {/* Items del Pedido */}
                 {items.length > 0 && (
                   <View style={styles.itemsContainer}>
+                    <Text style={styles.itemsTitle}>Platillos:</Text>
                     {items.map((item, index) => (
                       <View key={index} style={styles.itemRow}>
                         <Text style={styles.itemCantidad}>{item.cantidad}x</Text>
-                        <Text style={styles.itemNombre}>
-                          {item.nombre || item.platillo_nombre}
-                        </Text>
+                        <View style={styles.itemDetalle}>
+                          <Text style={styles.itemNombre}>
+                            {item.platillo_nombre || item.nombre}
+                          </Text>
+                          {item.notas_especiales && (
+                            <Text style={styles.itemNotas}>
+                              📝 {item.notas_especiales}
+                            </Text>
+                          )}
+                        </View>
                         <Text style={styles.itemPrecio}>
                           ${parseFloat(item.subtotal || 0).toFixed(2)}
                         </Text>
@@ -272,14 +421,44 @@ export default function DetalleMesaScreen({ route, navigation }) {
                   </View>
                 )}
 
+                {/* Notas del Pedido */}
                 {pedido.notas && (
-                  <Text style={styles.pedidoNotas}>📝 {pedido.notas}</Text>
+                  <View style={styles.notasContainer}>
+                    <Text style={styles.notasText}>📝 {pedido.notas}</Text>
+                  </View>
                 )}
 
+                {/* Footer con Total y Acciones */}
                 <View style={styles.pedidoFooter}>
-                  <Text style={styles.pedidoTotal}>
-                    Total: ${total.toFixed(2)}
-                  </Text>
+                  <View>
+                    <Text style={styles.totalLabel}>Total:</Text>
+                    <Text style={styles.totalValue}>
+                      ${total.toFixed(2)}
+                    </Text>
+                  </View>
+
+                  {pedido.estado === 'listo' && (
+                    <TouchableOpacity
+                      style={styles.btnEntregar}
+                      onPress={() => marcarPedidoEntregado(pedido.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.btnEntregarIcon}>✓</Text>
+                      <Text style={styles.btnEntregarText}>Marcar Entregado</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {pedido.estado === 'pendiente' && (
+                    <View style={styles.estadoInfo}>
+                      <Text style={styles.estadoInfoText}>⏳ En espera de cocina</Text>
+                    </View>
+                  )}
+
+                  {pedido.estado === 'en_preparacion' && (
+                    <View style={styles.estadoInfo}>
+                      <Text style={styles.estadoInfoText}>🔥 Preparándose en cocina</Text>
+                    </View>
+                  )}
                 </View>
               </View>
             );
@@ -291,6 +470,59 @@ export default function DetalleMesaScreen({ route, navigation }) {
             </Text>
           </View>
         )}
+
+        {/* Historial de Pedidos Completados */}
+        {pedidos.filter(p => p.estado === 'entregado').length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>
+              ✓ Pedidos Entregados ({pedidos.filter(p => p.estado === 'entregado').length})
+            </Text>
+            {pedidos
+              .filter(p => p.estado === 'entregado')
+              .map((pedido) => {
+                const items = Array.isArray(pedido.items)
+                  ? pedido.items
+                  : (pedido.items ? JSON.parse(pedido.items) : []);
+
+                return (
+                  <View key={pedido.id} style={[styles.pedidoCard, styles.pedidoEntregado]}>
+                    <View style={styles.pedidoHeader}>
+                      <View>
+                        <Text style={styles.pedidoId}>Pedido #{pedido.id}</Text>
+                        <Text style={styles.pedidoFecha}>
+                          {new Date(pedido.created_at).toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.estadoPedidoBadge,
+                          { backgroundColor: getEstadoPedidoColor(pedido.estado) },
+                        ]}
+                      >
+                        <Text style={styles.estadoPedidoText}>
+                          {getEstadoPedidoLabel(pedido.estado)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.itemsResumen}>
+                      <Text style={styles.itemsResumenText}>
+                        {items.length} {items.length === 1 ? 'platillo' : 'platillos'}
+                      </Text>
+                      <Text style={styles.totalEntregado}>
+                        ${parseFloat(pedido.total || 0).toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -300,17 +532,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    ...(Platform.OS === 'web' && {
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-    }),
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#f5f5f5',
   },
   loadingText: {
     fontSize: 18,
@@ -353,24 +581,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    ...(Platform.OS === 'web' && {
-      flexShrink: 0,
-    }),
   },
   scrollView: {
     flex: 1,
-    ...(Platform.OS === 'web' && {
-      flexGrow: 1,
-      flexShrink: 1,
-      overflow: 'auto',
-    }),
   },
   btnBack: {
     color: 'white',
     fontSize: 16,
+    fontWeight: '600',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: 'white',
   },
@@ -382,21 +603,22 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 20,
+    marginTop: 25,
     marginBottom: 15,
   },
   mesaInfoCard: {
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 20,
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    marginBottom: 15,
   },
   infoRow: {
     flexDirection: 'row',
@@ -409,6 +631,7 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 16,
     color: '#666',
+    fontWeight: '500',
   },
   infoValue: {
     fontSize: 16,
@@ -425,139 +648,237 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  btnCambiarEstado: {
-    backgroundColor: '#2196F3',
-    padding: 15,
-    borderRadius: 8,
+  btnLiberarFull: {
+    backgroundColor: '#FF5722',
+    borderRadius: 10,
+    padding: 18,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    marginBottom: 15,
   },
-  btnCambiarEstadoText: {
+  btnLiberarDisabled: {
+    backgroundColor: '#BDBDBD',
+    opacity: 0.6,
+  },
+  btnLiberarIcon: {
+    fontSize: 24,
+    marginRight: 8,
+    color: 'white',
+  },
+  btnLiberarText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  actionCard: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 18,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderLeftWidth: 4,
-    borderLeftColor: '#2196F3',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  actionIcon: {
-    fontSize: 28,
-    marginRight: 15,
-  },
-  actionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  actionSubtitle: {
-    fontSize: 13,
-    color: '#666',
-  },
-  actionArrow: {
-    fontSize: 20,
-    color: '#999',
-    marginLeft: 10,
-  },
-  pedidoCard: {
+  resumenContainer: {
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     marginBottom: 10,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  resumenItem: {
+    alignItems: 'center',
+  },
+  resumenLabel: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 5,
+  },
+  resumenValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2196F3',
+  },
+  pedidoCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 18,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+  },
+  pedidoEntregado: {
+    opacity: 0.7,
+    borderLeftColor: '#9E9E9E',
   },
   pedidoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: 15,
   },
   pedidoId: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 4,
   },
   estadoPedidoBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
   },
   estadoPedidoText: {
     color: 'white',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   pedidoFecha: {
     fontSize: 13,
     color: '#999',
-    marginBottom: 12,
   },
   itemsContainer: {
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  itemsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#666',
     marginBottom: 10,
   },
   itemRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
+    alignItems: 'flex-start',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   itemCantidad: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#666',
-    width: 35,
+    width: 40,
+  },
+  itemDetalle: {
+    flex: 1,
   },
   itemNombre: {
-    flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: '#333',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  itemNotas: {
+    fontSize: 13,
+    color: '#FF6F00',
+    fontStyle: 'italic',
+    marginTop: 2,
   },
   itemPrecio: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#4CAF50',
   },
-  pedidoNotas: {
-    fontSize: 13,
+  notasContainer: {
+    backgroundColor: '#FFF9C4',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FBC02D',
+  },
+  notasText: {
+    fontSize: 14,
     color: '#666',
     fontStyle: 'italic',
-    backgroundColor: '#fff3cd',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
   },
   pedidoFooter: {
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 10,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 2,
+    borderTopColor: '#e0e0e0',
   },
-  pedidoTotal: {
-    fontSize: 18,
+  totalLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  totalValue: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#4CAF50',
   },
-  emptyContainer: {
-    padding: 30,
+  btnEntregar: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    elevation: 3,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  btnEntregarIcon: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  btnEntregarText: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  estadoInfo: {
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#2196F3',
+  },
+  estadoInfoText: {
+    color: '#1976D2',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  itemsResumen: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 8,
+  },
+  itemsResumenText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  totalEntregado: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#9E9E9E',
+  },
+  emptyContainer: {
+    backgroundColor: 'white',
+    padding: 40,
+    alignItems: 'center',
+    borderRadius: 10,
+    marginBottom: 20,
   },
   emptyText: {
     fontSize: 16,

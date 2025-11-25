@@ -200,11 +200,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    ...(Platform.OS === 'web' && {
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-    }),
   },
   header: {
     backgroundColor: '#2196F3',
@@ -220,17 +215,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    ...(Platform.OS === 'web' && {
-      flexShrink: 0,
-    }),
   },
   scrollView: {
     flex: 1,
-    ...(Platform.OS === 'web' && {
-      flexGrow: 1,
-      flexShrink: 1,
-      overflow: 'auto',
-    }),
   },
   headerTitle: {
     fontSize: 32,

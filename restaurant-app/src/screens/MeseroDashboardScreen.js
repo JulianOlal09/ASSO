@@ -516,11 +516,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    ...(Platform.OS === 'web' && {
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-    }),
   },
   header: {
     backgroundColor: '#4CAF50',
@@ -531,17 +526,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     minHeight: 100,
-    ...(Platform.OS === 'web' && {
-      flexShrink: 0,
-    }),
   },
   scrollView: {
     flex: 1,
-    ...(Platform.OS === 'web' && {
-      flexGrow: 1,
-      flexShrink: 1,
-      overflow: 'auto',
-    }),
   },
   headerTitle: {
     fontSize: 28,

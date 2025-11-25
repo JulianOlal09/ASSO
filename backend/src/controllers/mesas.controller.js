@@ -156,35 +156,50 @@ const obtenerPedidosMesa = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Consulta principal de pedidos (sin JSON_ARRAYAGG para compatibilidad con MySQL antiguo)
     const [pedidos] = await db.query(
       `SELECT
-        p.*,
-        JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'id', dp.id,
-            'platillo_nombre', pl.nombre,
-            'cantidad', dp.cantidad,
-            'precio_unitario', dp.precio_unitario,
-            'subtotal', dp.subtotal,
-            'estado', dp.estado
-          )
-        ) as items
+        p.id,
+        p.mesa_id,
+        p.mesero_id,
+        p.total,
+        p.estado,
+        p.notas,
+        p.created_at,
+        p.updated_at
       FROM pedidos p
-      LEFT JOIN detalle_pedidos dp ON p.id = dp.pedido_id
-      LEFT JOIN platillos pl ON dp.platillo_id = pl.id
       WHERE p.mesa_id = ? AND p.estado != 'cancelado'
-      GROUP BY p.id
       ORDER BY p.created_at DESC`,
       [id]
     );
 
-    // Parsear los items JSON
-    const pedidosFormateados = pedidos.map(pedido => ({
-      ...pedido,
-      items: JSON.parse(pedido.items)
-    }));
+    // Obtener items para cada pedido
+    const pedidosConItems = await Promise.all(
+      pedidos.map(async (pedido) => {
+        const [items] = await db.query(
+          `SELECT
+            dp.id,
+            dp.platillo_id,
+            pl.nombre as platillo_nombre,
+            dp.cantidad,
+            dp.precio_unitario,
+            dp.subtotal,
+            dp.estado,
+            dp.notas_especiales
+          FROM detalle_pedidos dp
+          LEFT JOIN platillos pl ON dp.platillo_id = pl.id
+          WHERE dp.pedido_id = ?`,
+          [pedido.id]
+        );
 
-    res.json(pedidosFormateados);
+        return {
+          ...pedido,
+          items: items || []
+        };
+      })
+    );
+
+    res.json(pedidosConItems);
   } catch (error) {
     console.error('Error al obtener pedidos de la mesa:', error);
     res.status(500).json({ error: 'Error al obtener pedidos de la mesa' });

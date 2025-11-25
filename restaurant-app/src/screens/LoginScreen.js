@@ -161,27 +161,6 @@ export default function LoginScreen({ navigation }) {
                 <Text style={styles.btnLoginText}>Iniciar Sesión</Text>
               )}
             </Pressable>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>o</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Client Button */}
-            <Pressable
-              style={({ pressed, hovered }) => [
-                styles.btnCliente,
-                Platform.OS === 'web' && hovered && styles.btnClienteHovered,
-                pressed && styles.btnClientePressed,
-              ]}
-              onPress={() => navigation.navigate('QRScanner')}
-              disabled={loading}
-            >
-              <Text style={styles.btnClienteText}>Soy Cliente</Text>
-              <Text style={styles.btnClienteSubtext}>Escanear código QR</Text>
-            </Pressable>
           </View>
         </View>
       </ScrollView>
@@ -336,60 +315,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.3,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e5e7eb',
-  },
-  dividerText: {
-    color: '#9ca3af',
-    paddingHorizontal: 12,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  btnCliente: {
-    backgroundColor: '#f9fafb',
-    borderWidth: 1.5,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    minHeight: 52,
-    ...Platform.select({
-      web: {
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-      },
-    }),
-  },
-  btnClienteHovered: {
-    backgroundColor: '#f3f4f6',
-    borderColor: '#3b82f6',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 2px 8px rgba(59, 130, 246, 0.15)',
-      },
-    }),
-  },
-  btnClientePressed: {
-    backgroundColor: '#e5e7eb',
-  },
-  btnClienteText: {
-    color: '#1a1a1a',
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  btnClienteSubtext: {
-    color: '#6b7280',
-    fontSize: 13,
-    fontWeight: '400',
   },
 });
