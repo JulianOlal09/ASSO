@@ -20,7 +20,7 @@ import { API_URL } from '../config/api';
 export default function KitchenScreen({ navigation }) {
   const [pedidosAgrupados, setPedidosAgrupados] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filtroEstado, setFiltroEstado] = useState('activos'); // activos, todos, listos
+  const [filtroEstado, setFiltroEstado] = useState('activos'); // activos, todos
   const { logout } = useAuth();
 
   useEffect(() => {
@@ -152,8 +152,6 @@ export default function KitchenScreen({ navigation }) {
     const estadoPedido = getEstadoPedido(pedido.items);
     if (filtroEstado === 'activos') {
       return estadoPedido !== 'listo';
-    } else if (filtroEstado === 'listos') {
-      return estadoPedido === 'listo';
     }
     return true; // todos
   });
@@ -202,9 +200,44 @@ export default function KitchenScreen({ navigation }) {
     </View>
   );
 
+  const renderPedidoSimplificado = ({ item }) => {
+    const estadoPedido = getEstadoPedido(item.items);
+    const totalProductos = item.items.reduce((sum, i) => sum + i.cantidad, 0);
+
+    return (
+      <View style={[
+        styles.pedidoCard,
+        estadoPedido === 'listo' && styles.pedidoCardListo
+      ]}>
+        <View style={styles.pedidoHeader}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.mesaNumero}>MESA {item.mesa_numero}</Text>
+            <Text style={styles.pedidoId}>Pedido #{item.id}</Text>
+          </View>
+
+          <View style={styles.headerRight}>
+            <View style={[styles.tiempoContainer, { backgroundColor: getColorPrioridad(item.created_at) }]}>
+              <Text style={styles.tiempoText}>{getTiempoTranscurrido(item.created_at)}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.resumenContainer}>
+          <Text style={styles.resumenText}>Total de productos: {totalProductos}</Text>
+        </View>
+      </View>
+    );
+  };
+
   const renderPedido = ({ item }) => {
     const estadoPedido = getEstadoPedido(item.items);
 
+    // Si estamos en vista "Todos", usar vista simplificada
+    if (filtroEstado === 'todos') {
+      return renderPedidoSimplificado({ item });
+    }
+
+    // Vista detallada para "Activos"
     return (
       <View style={[
         styles.pedidoCard,
@@ -272,15 +305,6 @@ export default function KitchenScreen({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filtroBtn, filtroEstado === 'listos' && styles.filtroBtnActivo]}
-          onPress={() => setFiltroEstado('listos')}
-        >
-          <Text style={[styles.filtroText, filtroEstado === 'listos' && styles.filtroTextActivo]}>
-            LISTOS
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={[styles.filtroBtn, filtroEstado === 'todos' && styles.filtroBtnActivo]}
           onPress={() => setFiltroEstado('todos')}
         >
@@ -293,9 +317,7 @@ export default function KitchenScreen({ navigation }) {
       {pedidosFiltrados.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
-            {filtroEstado === 'activos' ? '✓ SIN PEDIDOS ACTIVOS' :
-             filtroEstado === 'listos' ? '○ SIN PEDIDOS LISTOS' :
-             '○ SIN PEDIDOS'}
+            {filtroEstado === 'activos' ? '✓ SIN PEDIDOS ACTIVOS' : '○ SIN PEDIDOS'}
           </Text>
         </View>
       ) : (
@@ -534,6 +556,17 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '600',
     color: '#78909C',
+    textAlign: 'center',
+  },
+  resumenContainer: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#ECEFF1',
+  },
+  resumenText: {
+    fontSize: isSmallScreen ? 15 : 17,
+    fontWeight: '600',
+    color: '#263238',
     textAlign: 'center',
   },
 });

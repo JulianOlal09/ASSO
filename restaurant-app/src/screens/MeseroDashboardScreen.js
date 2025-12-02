@@ -257,8 +257,8 @@ export default function MeseroDashboardScreen({ navigation }) {
     }
   };
 
-  const StatCard = ({ title, value, icon, color = '#4CAF50' }) => (
-    <View style={[styles.statCard, { borderTopColor: color }]}>
+  const StatCard = ({ title, value, icon, color = '#4CAF50', testID }) => (
+    <View testID={testID} style={[styles.statCard, { borderTopColor: color }]}>
       <Text style={styles.statIcon}>{icon}</Text>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statTitle}>{title}</Text>
@@ -270,12 +270,14 @@ export default function MeseroDashboardScreen({ navigation }) {
 
     return (
       <View
+        testID={`mesa-card-${mesa.numero}`}
         style={[
           styles.mesaCard,
           { borderLeftColor: getEstadoColor(mesa.estado) },
         ]}
       >
         <TouchableOpacity
+          testID={`mesa-card-touchable-${mesa.numero}`}
           onLongPress={() => confirmarCambioEstado(mesa)}
           activeOpacity={0.7}
         >
@@ -298,9 +300,9 @@ export default function MeseroDashboardScreen({ navigation }) {
 
           {/* Mostrar pedido activo si existe */}
           {pedido && (
-            <View style={styles.pedidoContainer}>
+            <View testID={`pedido-container-mesa-${mesa.numero}`} style={styles.pedidoContainer}>
               <View style={styles.pedidoHeader}>
-                <Text style={styles.pedidoTitle}>📋 Pedido #{pedido.id}</Text>
+                <Text testID={`pedido-title-${pedido.id}`} style={styles.pedidoTitle}>📋 Pedido #{pedido.id}</Text>
                 <View
                   style={[
                     styles.pedidoEstadoBadge,
@@ -352,6 +354,7 @@ export default function MeseroDashboardScreen({ navigation }) {
         <View style={styles.mesaActions}>
           {mostrarBotonLiberar && mesa.estado !== 'disponible' && (
             <TouchableOpacity
+              testID={`btn-liberar-mesa-${mesa.numero}`}
               style={styles.btnLiberar}
               onPress={() => confirmarLiberarMesa(mesa)}
             >
@@ -359,6 +362,7 @@ export default function MeseroDashboardScreen({ navigation }) {
             </TouchableOpacity>
           )}
           <TouchableOpacity
+            testID={`btn-ver-detalle-mesa-${mesa.numero}`}
             style={styles.btnVerDetalle}
             onPress={() =>
               navigation.navigate('DetalleMesa', { mesaId: mesa.id })
@@ -415,6 +419,7 @@ export default function MeseroDashboardScreen({ navigation }) {
             <Text style={styles.headerSubtitle}>Hola, {usuario?.nombre}</Text>
           </View>
           <TouchableOpacity
+            testID="mesero-logout-button"
             style={styles.btnLogout}
             onPress={async () => {
               await logout();
@@ -430,6 +435,7 @@ export default function MeseroDashboardScreen({ navigation }) {
       </SafeAreaView>
 
       <ScrollView
+        testID="mesero-dashboard-scrollview"
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         refreshControl={
@@ -441,18 +447,21 @@ export default function MeseroDashboardScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Estado General</Text>
         <View style={styles.statsGrid}>
           <StatCard
+            testID="stat-card-total-mesas"
             title="Total Mesas"
             value={estadisticas.total}
             icon="🪑"
             color="#2196F3"
           />
           <StatCard
+            testID="stat-card-mesas-ocupadas"
             title="Ocupadas"
             value={estadisticas.ocupadas}
             icon="●"
             color="#FF5722"
           />
           <StatCard
+            testID="stat-card-pedidos-activos"
             title="Pedidos Activos"
             value={estadisticas.pedidosActivos}
             icon="📋"
@@ -463,6 +472,7 @@ export default function MeseroDashboardScreen({ navigation }) {
         {/* Acciones Rápidas */}
         <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
         <TouchableOpacity
+          testID="action-button-crear-pedido"
           style={styles.actionButton}
           onPress={() => navigation.navigate('CrearPedidoManual')}
         >
@@ -523,6 +533,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
   headerSafeArea: {
     backgroundColor: '#4CAF50',

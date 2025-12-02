@@ -69,8 +69,9 @@ export default function AdminDashboardScreen({ navigation }) {
     }
   };
 
-  const MenuItem = ({ title, icon, onPress, color = '#4CAF50' }) => (
+  const MenuItem = ({ title, icon, onPress, color = '#4CAF50', testID }) => (
     <TouchableOpacity
+      testID={testID}
       style={[styles.menuItem, { borderLeftColor: color }]}
       onPress={onPress}
     >
@@ -80,8 +81,8 @@ export default function AdminDashboardScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  const StatCard = ({ title, value, subtitle, color = '#4CAF50' }) => (
-    <View style={[styles.statCard, { borderTopColor: color }]}>
+  const StatCard = ({ title, value, subtitle, color = '#4CAF50', testID }) => (
+    <View testID={testID} style={[styles.statCard, { borderTopColor: color }]}>
       <Text style={styles.statTitle}>{title}</Text>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
       {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
@@ -100,6 +101,7 @@ export default function AdminDashboardScreen({ navigation }) {
             </Text>
           </View>
           <TouchableOpacity
+            testID="admin-logout-button"
             style={styles.btnLogout}
             onPress={async () => {
               await logout();
@@ -115,6 +117,7 @@ export default function AdminDashboardScreen({ navigation }) {
       </SafeAreaView>
 
       <ScrollView
+        testID="admin-dashboard-scrollview"
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         refreshControl={
@@ -126,23 +129,27 @@ export default function AdminDashboardScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Estadísticas de Hoy</Text>
         <View style={styles.statsGrid}>
           <StatCard
+            testID="stat-card-ventas-totales"
             title="Ventas Totales"
             value={`$${estadisticas?.ventas?.total?.toFixed(2) || '0.00'}`}
             subtitle={`${estadisticas?.ventas?.cantidad_pedidos || 0} pedidos`}
             color="#4CAF50"
           />
           <StatCard
+            testID="stat-card-promedio-pedido"
             title="Promedio por Pedido"
             value={`$${estadisticas?.ventas?.promedio_por_pedido?.toFixed(2) || '0.00'}`}
             color="#2196F3"
           />
           <StatCard
+            testID="stat-card-mesas-ocupadas"
             title="Mesas Ocupadas"
             value={`${estadisticas?.mesas?.ocupadas || 0}/${estadisticas?.mesas?.total || 0}`}
             subtitle={`Disponibles: ${estadisticas?.mesas?.disponibles || 0}`}
             color="#FF9800"
           />
           <StatCard
+            testID="stat-card-tiempo-preparacion"
             title="Tiempo Prep. Promedio"
             value={`${estadisticas?.tiempo_preparacion?.promedio_minutos?.toFixed(0) || '0'} min`}
             color="#9C27B0"
@@ -153,6 +160,7 @@ export default function AdminDashboardScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Gestión</Text>
 
         <MenuItem
+          testID="menu-item-gestion-usuarios"
           title="Gestión de Usuarios"
           icon="👥"
           color="#2196F3"
@@ -160,6 +168,7 @@ export default function AdminDashboardScreen({ navigation }) {
         />
 
         <MenuItem
+          testID="menu-item-gestion-menu"
           title="Gestión de Menú"
           icon="🍽️"
           color="#4CAF50"
@@ -167,6 +176,7 @@ export default function AdminDashboardScreen({ navigation }) {
         />
 
         <MenuItem
+          testID="menu-item-gestion-mesas"
           title="Gestión de Mesas"
           icon="🪑"
           color="#FF9800"
@@ -176,6 +186,7 @@ export default function AdminDashboardScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Reportes</Text>
 
         <MenuItem
+          testID="menu-item-reporte-ventas"
           title="Reporte de Ventas"
           icon="💰"
           color="#4CAF50"
@@ -183,6 +194,7 @@ export default function AdminDashboardScreen({ navigation }) {
         />
 
         <MenuItem
+          testID="menu-item-reporte-platillos"
           title="Platillos Más Vendidos"
           icon="⭐"
           color="#FF5722"
@@ -200,6 +212,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'hidden' } : {}),
   },
   headerSafeArea: {
     backgroundColor: '#2196F3',

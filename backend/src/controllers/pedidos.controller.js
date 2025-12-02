@@ -358,7 +358,7 @@ const obtenerPedidosCocina = async (req, res) => {
       INNER JOIN detalle_pedidos dp ON p.id = dp.pedido_id
       INNER JOIN platillos pl ON dp.platillo_id = pl.id
       INNER JOIN mesas m ON p.mesa_id = m.id
-      WHERE p.estado IN ('pendiente', 'en_preparacion')
+      WHERE p.estado IN ('pendiente', 'en_preparacion', 'listo')
       ORDER BY p.created_at ASC, dp.id`
     );
 

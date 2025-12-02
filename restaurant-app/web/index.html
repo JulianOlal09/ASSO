@@ -7,19 +7,16 @@
     <title>Sistema de Gestión de Restaurantes</title>
     <style>
       /* Root / layout */
-      html, body {
-        margin: 0;
-        padding: 0;
+      /* Root / layout - Fix for React Native Web ScrollView */
+      html, body, #root {
+        height: 100%;
         width: 100%;
-        min-height: 100vh;     /* <-- permite que el contenido crezca */
-        overflow-y: auto;      /* <-- permite scroll vertical */
+        overflow: hidden; /* Prevent native browser scroll, let RN ScrollView handle it */
       }
-
-      /* Aseguramos que el root no "forcé" altura fija */
+      
       #root {
-        width: 100%;
-        min-height: 100vh;     /* <-- permite crecimiento y scroll */
-        display: block;
+        display: flex;
+        flex-direction: column;
       }
 
       /* Evitar reglas globales invasivas para eventos/touch */

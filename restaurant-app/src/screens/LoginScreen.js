@@ -67,6 +67,7 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
+        testID="login-scrollview"
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -81,8 +82,8 @@ export default function LoginScreen({ navigation }) {
 
             {/* Error Message */}
             {error ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
+              <View testID="login-error-container" style={styles.errorContainer}>
+                <Text testID="login-error-text" style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
@@ -90,6 +91,7 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
               <TextInput
+                testID="login-email-input"
                 style={[
                   styles.input,
                   emailFocused && styles.inputFocused,
@@ -119,6 +121,7 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Contraseña</Text>
               <TextInput
+                testID="login-password-input"
                 ref={passwordRef}
                 style={[
                   styles.input,
@@ -146,6 +149,7 @@ export default function LoginScreen({ navigation }) {
 
             {/* Login Button */}
             <Pressable
+              testID="login-submit-button"
               style={({ pressed, hovered }) => [
                 styles.btnLogin,
                 loading && styles.btnLoginDisabled,
@@ -156,7 +160,7 @@ export default function LoginScreen({ navigation }) {
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="white" size="small" />
+                <ActivityIndicator testID="login-loading-indicator" color="white" size="small" />
               ) : (
                 <Text style={styles.btnLoginText}>Iniciar Sesión</Text>
               )}
